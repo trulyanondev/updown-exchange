@@ -28,7 +28,7 @@ class PrivyService {
    */
   async getUser(userId: string): Promise<any> {
     try {
-      const user = await this.privyClient.getUser(userId);
+      const user = await this.privyClient.getUserById(userId)
       return user;
     } catch (error) {
       console.error('Error fetching user from Privy:', error);
