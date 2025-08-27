@@ -1,21 +1,24 @@
-import { PrivyClient } from '@privy-io/server-auth';
+import { PrivyClient, User, AuthTokenClaims } from '@privy-io/server-auth';
 
 class PrivyService {
-  private privyClient: PrivyClient;
+  private static privyClient: PrivyClient;
 
-  constructor() {
-    this.privyClient = new PrivyClient(
+  private static getClient(): PrivyClient {
+    if (!PrivyService.privyClient) {
+      PrivyService.privyClient = new PrivyClient(
         process.env.PRIVY_APP_ID || '',
         process.env.PRIVY_APP_SECRET || '',
-    );
+      );
+    }
+    return PrivyService.privyClient;
   }
 
   /**
    * Verify Privy JWT token
    */
-  async verifyToken(token: string): Promise<any> {
+  private static async verifyToken(token: string): Promise<AuthTokenClaims> {
     try {
-        const verifiedToken = await this.privyClient.verifyAuthToken(token);
+        const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);
         return verifiedToken;
       } catch (error) {
         console.error('Token verification failed:', error);
@@ -23,12 +26,16 @@ class PrivyService {
       }
   }
 
+  // ============================================================================
+  // PUBLIC METHODS
+  // ============================================================================
+
   /**
    * Get user from Privy API
    */
-  async getUser(userId: string): Promise<any> {
+  static async getUser(userId: string): Promise<User> {
     try {
-      const user = await this.privyClient.getUserById(userId)
+      const user = await PrivyService.getClient().getUserById(userId)
       return user;
     } catch (error) {
       console.error('Error fetching user from Privy:', error);
@@ -39,8 +46,8 @@ class PrivyService {
   /**
    * Verify token and get user in one call
    */
-  async verifyAndGetUser(token: string): Promise<any> {
-    const verifiedToken = await this.verifyToken(token);
+  static async verifyAndGetUser(token: string): Promise<User> {
+    const verifiedToken = await PrivyService.verifyToken(token);
     const user = await this.getUser(verifiedToken.userId);
     return user;
   }
