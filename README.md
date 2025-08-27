@@ -103,9 +103,33 @@ Main API endpoint that returns "Hello caller".
 }
 ```
 
+### GET `/api/privy/user`
+Privy user authentication endpoint. Requires a valid Privy JWT token in the Authorization header.
+
+**Headers:**
+```
+Authorization: Bearer <privy_jwt_token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "user": {
+    // Privy user object from their API
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Missing or invalid authorization header
+- `401 Unauthorized` - Invalid authentication token
+- `500 Internal Server Error` - Failed to fetch user data from Privy
+
 ## 🔧 Configuration
 
 - **Port**: Set via `PORT` environment variable (default: 3001)
+- **Privy App ID**: Set via `PRIVY_APP_ID` environment variable for Privy authentication
 - **TypeScript**: Configured in `tsconfig.json`
 - **ESLint**: Configured in `.eslintrc.json`
 - **Prettier**: Configured in `.prettierrc`
@@ -115,13 +139,27 @@ Main API endpoint that returns "Hello caller".
 ```
 UpDownV2/
 ├── src/
-│   └── index.ts          # Main server file
+│   ├── index.ts          # Main server file
+│   └── services/
+│       └── privy.ts      # Privy authentication service
 ├── dist/                 # Build output (generated)
 ├── package.json          # Dependencies and scripts
 ├── tsconfig.json         # TypeScript configuration
 ├── .eslintrc.json       # ESLint configuration
 ├── .prettierrc          # Prettier configuration
 └── README.md            # This file
+```
+
+## 🧪 Testing
+
+A test script `test-privy.js` is included to help test the Privy endpoint:
+
+```bash
+# Set your Privy JWT token
+export PRIVY_TOKEN="your_jwt_token_here"
+
+# Run the test
+node test-privy.js
 ```
 
 ## 🚀 Future Enhancements

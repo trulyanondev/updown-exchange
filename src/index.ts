@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import PrivyService from './services/privy.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +22,39 @@ app.get('/api/hello', (req, res) => {
   res.status(200).json({ message: 'Hello caller' });
 });
 
+// Privy user endpoint
+app.get('/api/user', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header required with Bearer token' });
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const privyService = new PrivyService();
+    
+    const user = await privyService.verifyAndGetUser(token);
+    
+    return res.status(200).json({ 
+      success: true,
+      user 
+    });
+  } catch (error) {
+    console.error('Privy user endpoint error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
+    if (error instanceof Error && error.message.includes('Failed to fetch user data')) {
+      return res.status(500).json({ error: 'Failed to fetch user data from Privy' });
+    }
+    
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -27,7 +62,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
-      hello: '/api/hello'
+      hello: '/api/hello',
+      privyUser: '/api/user'
     }
   });
 });
