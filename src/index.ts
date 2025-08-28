@@ -2,7 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import PrivyService from './services/privy.js';
+import PrivyService from './services/privy.js'
+import HyperliquidService from './services/hyperliquid.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,6 +55,46 @@ app.get('/api/user', async (req, res) => {
   }
 });
 
+// Create order endpoint
+app.post('/api/create_order', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header required with Bearer token' });
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Verify user authentication
+    const user = await PrivyService.verifyAndGetUser(token);
+    
+    // Extract and validate order parameters, then map to Hyperliquid format
+    const orderParams = mapToOrderParams(req.body);
+    
+    // Create HyperliquidService instance and place order
+    const hyperliquidService = new HyperliquidService();
+    const result = await hyperliquidService.createOrder(user.id, orderParams);
+    
+    return res.status(200).json({ 
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('Create order endpoint error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
+    if (error instanceof Error && error.message.includes('User does not have a wallet')) {
+      return res.status(400).json({ error: 'User does not have a valid wallet' });
+    }
+    
+    return res.status(500).json({ error: 'Failed to create order', details: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -62,7 +103,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       hello: '/api/hello',
-      privyUser: '/api/user'
+      privyUser: '/api/user',
+      createOrder: '/api/create_order'
     }
   });
 });
@@ -84,5 +126,35 @@ app.listen(PORT, () => {
   console.log(`📖 API Documentation available at http://localhost:${PORT}`);
   console.log(`💚 Health check at http://localhost:${PORT}/health`);
 });
+
+/**
+ * Helper function to extract, validate, and map order parameters to Hyperliquid format
+ */
+function mapToOrderParams(body: any) {
+  const { 
+    assetId, 
+    isBuy, 
+    price, 
+    size, 
+    reduceOnly = false, 
+    orderType 
+  } = body;
+  
+  // Validate required parameters and throw error if invalid
+  if (typeof assetId !== 'number' || typeof isBuy !== 'boolean' || 
+      typeof price !== 'string' || typeof size !== 'string' || 
+      typeof reduceOnly !== 'boolean' || !orderType) {
+    throw new Error('Invalid order parameters. Expected: assetId (number), isBuy (boolean), price (string), size (string), reduceOnly (boolean, optional), orderType (object)');
+  }
+
+  return {
+    a: assetId,
+    b: isBuy,
+    p: price,
+    s: size,
+    r: reduceOnly,
+    t: orderType
+  };
+}
 
 export default app;

@@ -9,21 +9,12 @@ class HyperliquidService {
   /**
    * Place an order on Hyperliquid
    */
-  async createOrder(userId: string, params: OrderParams): Promise<OrderResponse> {
-    // Get user's wallet from Privy
-    const user = await PrivyService.getClient().getUserById(userId);
-    const wallet = user.linkedAccounts?.find(
-      account => account.type === 'wallet' && account.id && account.delegated === true
-    ) as WalletWithMetadata | undefined;
-    
-    if (!wallet || !wallet.id) {
-      throw new Error('User does not have a wallet with valid ID');
-    }
-
+  async createOrder(userId: string, walletId: string, walletAddress: `0x${string}`, params: OrderParams): Promise<OrderResponse> {
+  
     // Create PrivyAbstractWallet that implements signing with Privy
     const privyWallet = new PrivyAbstractWallet({
-      walletId: wallet.id,
-      address: wallet.address as `0x${string}`
+      walletId: walletId,
+      address: walletAddress
     });
 
     // Create ExchangeClient with PrivyAbstractWallet
@@ -42,4 +33,4 @@ class HyperliquidService {
   }
 }
 
-// export default HyperliquidService;
+export default HyperliquidService;
