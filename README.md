@@ -1,11 +1,13 @@
 # UpDownV2 Server
 
-A modern TypeScript server built with Express.js, featuring the latest development tools and best practices.
+A modern TypeScript server built with Express.js for Hyperliquid trading integration with Privy authentication and delegated wallet signing.
 
 ## 🚀 Features
 
 - **TypeScript** with strict type checking
-- **Express.js** web framework
+- **Express.js** web framework with middleware pattern
+- **Privy Authentication** with JWT token verification
+- **Hyperliquid Trading** integration with delegated wallet signing
 - **ES Modules** (ESM) support
 - **CORS** enabled for cross-origin requests
 - **Helmet** for security headers
@@ -18,6 +20,8 @@ A modern TypeScript server built with Express.js, featuring the latest developme
 
 - Node.js 18.0.0 or higher
 - npm or yarn package manager
+- Privy account with app credentials
+- Hyperliquid account for trading
 
 ## 🛠️ Installation
 
@@ -30,6 +34,19 @@ cd UpDownV2
 2. Install dependencies:
 ```bash
 npm install
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+```
+PORT=3001
+PRIVY_APP_ID=your_privy_app_id
+PRIVY_APP_SECRET=your_privy_app_secret
+NODE_ENV=development
 ```
 
 ## 🚀 Development
@@ -73,11 +90,13 @@ Returns server information and available endpoints.
 **Response:**
 ```json
 {
-  "message": "UpDownV2 Server API",
+  "message": "UpDown Server API",
   "version": "1.0.0",
   "endpoints": {
     "health": "/health",
-    "hello": "/api/hello"
+    "hello": "/api/hello",
+    "privyUser": "/api/user",
+    "createOrder": "/api/create_order"
   }
 }
 ```
@@ -94,7 +113,7 @@ Health check endpoint for monitoring.
 ```
 
 ### GET `/api/hello`
-Main API endpoint that returns "Hello caller".
+Basic API endpoint that returns "Hello caller".
 
 **Response:**
 ```json
@@ -103,8 +122,8 @@ Main API endpoint that returns "Hello caller".
 }
 ```
 
-### GET `/api/privy/user`
-Privy user authentication endpoint. Requires a valid Privy JWT token in the Authorization header.
+### GET `/api/user`
+Get authenticated user information from Privy.
 
 **Headers:**
 ```
@@ -116,21 +135,85 @@ Authorization: Bearer <privy_jwt_token>
 {
   "success": true,
   "user": {
-    // Privy user object from their API
+    "id": "user_id",
+    "linkedAccounts": [...],
+    "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
 
 **Error Responses:**
 - `401 Unauthorized` - Missing or invalid authorization header
+- `500 Internal Server Error` - Authentication failed
+
+### POST `/api/create_order`
+Create a trading order on Hyperliquid using delegated wallet signing.
+
+**Headers:**
+```
+Authorization: Bearer <privy_jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "assetId": 0,
+  "isBuy": true,
+  "price": "50000",
+  "size": "0.1",
+  "reduceOnly": false,
+  "orderType": {
+    "limit": {
+      "tif": "Gtc"
+    }
+  }
+}
+```
+
+**Parameters:**
+- `assetId` (number): Asset ID (e.g., 0 for BTC)
+- `isBuy` (boolean): Order direction (true for buy, false for sell)
+- `price` (string): Order price
+- `size` (string): Order size in base currency
+- `reduceOnly` (boolean, optional): Whether this is a reduce-only order (defaults to false)
+- `orderType` (object): Order type configuration
+  - For limit orders: `{ "limit": { "tif": "Gtc" } }`
+  - For market orders: `{ "trigger": { "isMarket": true, "triggerPx": "0", "tpsl": "tp" } }`
+
+**Response:**
+```json
+{
+  "success": true,
+  "result": {
+    "response": {
+      "type": "order",
+      "data": {
+        "statuses": [...]
+      }
+    }
+  }
+}
+```
+
+**Error Responses:**
 - `401 Unauthorized` - Invalid authentication token
-- `500 Internal Server Error` - Failed to fetch user data from Privy
+- `400 Bad Request` - User does not have a delegated wallet
+- `400 Bad Request` - Invalid order parameters
+- `500 Internal Server Error` - Failed to create order
 
 ## 🔧 Configuration
 
-- **Port**: Set via `PORT` environment variable (default: 3001)
-- **Privy App ID**: Set via `PRIVY_APP_ID` environment variable for Privy authentication
-- **TypeScript**: Configured in `tsconfig.json`
+### Environment Variables
+
+- `PORT`: Server port (default: 3001)
+- `PRIVY_APP_ID`: Your Privy application ID
+- `PRIVY_APP_SECRET`: Your Privy application secret
+- `NODE_ENV`: Environment (development/production)
+
+### TypeScript Configuration
+
+- **tsconfig.json**: TypeScript compiler options
 - **ESLint**: Configured in `.eslintrc.json`
 - **Prettier**: Configured in `.prettierrc`
 
@@ -139,41 +222,106 @@ Authorization: Bearer <privy_jwt_token>
 ```
 UpDownV2/
 ├── src/
-│   ├── index.ts          # Main server file
-│   └── services/
-│       └── privy.ts      # Privy authentication service
-├── dist/                 # Build output (generated)
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-├── .eslintrc.json       # ESLint configuration
-├── .prettierrc          # Prettier configuration
-└── README.md            # This file
+│   ├── index.ts              # Main server file with Express app and routes
+│   ├── services/
+│   │   ├── privy.ts          # Privy authentication service
+│   │   └── hyperliquid.ts    # Hyperliquid trading service
+│   └── wallet/
+│       └── privy_abstract_wallet.ts  # Privy wallet adapter for Hyperliquid
+├── dist/                     # Build output (generated)
+├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript configuration
+├── .eslintrc.json           # ESLint configuration
+├── .prettierrc              # Prettier configuration
+└── README.md                # This file
 ```
+
+## 🔐 Authentication & Wallet Setup
+
+This server uses Privy for authentication and delegated wallet signing:
+
+1. **User Authentication**: Users authenticate via Privy JWT tokens
+2. **Delegated Wallets**: Users must have a delegated embedded wallet in Privy
+3. **Server Signing**: The server signs Hyperliquid transactions on behalf of users using Privy's wallet API
+
+### Wallet Requirements
+
+- Users must have an embedded wallet in Privy
+- The wallet must be delegated for server-side signing
+- The wallet address is used for Hyperliquid trading operations
+
+## 🏗️ Architecture
+
+### Services
+
+- **PrivyService**: Handles JWT verification, user fetching, and wallet management
+- **HyperliquidService**: Manages trading operations and order placement
+- **PrivyAbstractWallet**: Adapter that implements Hyperliquid's AbstractWallet interface using Privy's signing API
+
+### Authentication Flow
+
+1. Client sends request with Privy JWT token
+2. `authenticateUser` middleware verifies token and fetches user
+3. User object is attached to request for downstream handlers
+4. Protected routes access user information from request object
+
+### Trading Flow
+
+1. Authenticated user submits order parameters
+2. Server validates parameters and maps to Hyperliquid format
+3. User's delegated wallet is retrieved from Privy
+4. `PrivyAbstractWallet` is created for signing operations
+5. `HyperliquidService` places order using delegated signing
+6. Result is returned to client
 
 ## 🧪 Testing
 
-A test script `test-privy.js` is included to help test the Privy endpoint:
+### Manual Testing
 
+Test the authentication endpoint:
 ```bash
-# Set your Privy JWT token
-export PRIVY_TOKEN="your_jwt_token_here"
+curl -H "Authorization: Bearer <your_privy_jwt>" \
+     http://localhost:3001/api/user
+```
 
-# Run the test
-node test-privy.js
+Test order creation:
+```bash
+curl -X POST \
+     -H "Authorization: Bearer <your_privy_jwt>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "assetId": 0,
+       "isBuy": true,
+       "price": "50000",
+       "size": "0.1",
+       "orderType": {
+         "limit": {
+           "tif": "Gtc"
+         }
+       }
+     }' \
+     http://localhost:3001/api/create_order
 ```
 
 ## 🚀 Future Enhancements
 
-This server is designed to be easily expandable. You can add:
+- **Database Integration**: Add PostgreSQL/MongoDB for order history
+- **Rate Limiting**: Implement request rate limiting
+- **Logging**: Add structured logging with Winston
+- **Testing**: Comprehensive test suite with Jest
+- **API Documentation**: OpenAPI/Swagger documentation
+- **Docker**: Containerization for deployment
+- **CI/CD**: Automated testing and deployment pipeline
+- **Portfolio Management**: Add position tracking and portfolio analytics
+- **Risk Management**: Implement trading limits and risk controls
 
-- Database integration (PostgreSQL, MongoDB, etc.)
-- Authentication middleware
-- Rate limiting
-- Logging (Winston, Pino)
-- Testing (Jest, Vitest)
-- API documentation (Swagger/OpenAPI)
-- Docker containerization
-- CI/CD pipeline configuration
+## 🛡️ Security Considerations
+
+- JWT tokens are verified on each request
+- Private keys are never stored server-side
+- All signing operations are delegated to Privy
+- CORS and Helmet middleware provide basic security
+- Environment variables protect sensitive configuration
 
 ## 📝 License
 
