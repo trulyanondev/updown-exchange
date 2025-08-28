@@ -83,7 +83,18 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
     
     // Create HyperliquidService instance and place order
     const hyperliquidService = new HyperliquidService();
-    const result = await hyperliquidService.createOrder(user.id, orderParams);
+
+    const wallet = PrivyService.getDelegatedWallet(user);
+    if (!wallet || !wallet.id) {
+      throw new Error('User does not have a delegated wallet.  The user must delegate the embedded wallet for server signing');
+    }
+
+    const result = await hyperliquidService.createOrder(
+      user.id, 
+      wallet.id,
+      wallet.address as `0x${string}`,
+      orderParams
+    );
     
     return res.status(200).json({ 
       success: true,
