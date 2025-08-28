@@ -3,7 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import PrivyService from './services/privy.js'
-import HyperliquidService from './services/hyperliquid.js';
+import TradingService, { TradingOrderParams, TradingLeverageParams, TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -58,21 +58,15 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
   try {
     const user = (req as any).user;
     
-    // Extract and validate order parameters, then map to Hyperliquid format
-    const orderParams = mapToOrderParams(req.body);
-    
-    // Create HyperliquidService instance and place order
-    const hyperliquidService = new HyperliquidService();
-
     const wallet = PrivyService.getDelegatedWallet(user);
     if (!wallet || !wallet.id) {
-      throw new Error('User does not have a delegated wallet.  The user must delegate the embedded wallet for server signing');
+      return res.status(400).json({ error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing' });
     }
 
-    const result = await hyperliquidService.createOrder(
-      wallet.id,
-      orderParams 
-    );
+    // Parse and validate request body with zod - automatically typed!
+    const orderParams = TradingOrderSchema.parse(req.body);
+
+    const result = await TradingService.createOrder(user.id, wallet.id, orderParams);
     
     return res.status(200).json({ 
       success: true,
@@ -81,11 +75,19 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Create order endpoint error:', error);
     
+    // Handle zod validation errors
+    if (error && typeof error === 'object' && 'issues' in error) {
+      return res.status(400).json({ 
+        error: 'Invalid order parameters', 
+        details: (error as any).issues 
+      });
+    }
+    
     if (error instanceof Error && error.message.includes('Invalid authentication token')) {
       return res.status(401).json({ error: 'Invalid authentication token' });
     }
     
-    if (error instanceof Error && error.message.includes('User does not have a wallet')) {
+    if (error instanceof Error && error.message.includes('User does not have a delegated wallet')) {
       return res.status(400).json({ error: 'User does not have a valid wallet' });
     }
     
@@ -98,29 +100,6 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
   try {
     const user = (req as any).user;
     
-    // Extract and validate leverage parameters
-    const { assetId, leverage } = req.body;
-    
-    if (typeof assetId !== 'number' || typeof leverage !== 'number') {
-      return res.status(400).json({ 
-        error: 'Invalid leverage parameters', 
-        expected: {
-          assetId: 'number (e.g., 0 for BTC)',
-          leverage: 'number (e.g., 5 for 5x leverage)'
-        }
-      });
-    }
-
-    if (leverage < 1 || leverage > 50) {
-      return res.status(400).json({ 
-        error: 'Invalid leverage value', 
-        message: 'Leverage must be between 1 and 50'
-      });
-    }
-    
-    // Create HyperliquidService instance and update leverage
-    const hyperliquidService = new HyperliquidService();
-
     const wallet = PrivyService.getDelegatedWallet(user);
     if (!wallet || !wallet.id) {
       return res.status(400).json({ 
@@ -128,11 +107,10 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
       });
     }
 
-    const result = await hyperliquidService.updateLeverage(
-      wallet.id,
-      assetId,
-      leverage  
-    );
+    // Parse and validate request body with zod - automatically typed!
+    const leverageParams = TradingLeverageSchema.parse(req.body);
+
+    const result = await TradingService.updateLeverage(user.id, wallet.id, leverageParams);
     
     return res.status(200).json({ 
       success: true,
@@ -141,11 +119,19 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
   } catch (error) {
     console.error('Update leverage endpoint error:', error);
     
+    // Handle zod validation errors
+    if (error && typeof error === 'object' && 'issues' in error) {
+      return res.status(400).json({ 
+        error: 'Invalid leverage parameters', 
+        details: (error as any).issues 
+      });
+    }
+    
     if (error instanceof Error && error.message.includes('Invalid authentication token')) {
       return res.status(401).json({ error: 'Invalid authentication token' });
     }
     
-    if (error instanceof Error && error.message.includes('User does not have a wallet')) {
+    if (error instanceof Error && error.message.includes('User does not have a delegated wallet')) {
       return res.status(400).json({ error: 'User does not have a valid wallet' });
     }
     
@@ -184,34 +170,5 @@ app.listen(PORT, () => {
   console.log(`💚 Health check at http://localhost:${PORT}/health`);
 });
 
-/**
- * Helper function to extract, validate, and map order parameters to Hyperliquid format
- */
-function mapToOrderParams(body: any) {
-  const { 
-    assetId, 
-    isBuy, 
-    price, 
-    size, 
-    reduceOnly = false, 
-    orderType 
-  } = body;
-  
-  // Validate required parameters and throw error if invalid
-  if (typeof assetId !== 'number' || typeof isBuy !== 'boolean' || 
-      typeof price !== 'string' || typeof size !== 'string' || 
-      typeof reduceOnly !== 'boolean' || !orderType) {
-    throw new Error('Invalid order parameters. Expected: assetId (number), isBuy (boolean), price (string), size (string), reduceOnly (boolean, optional), orderType (object)');
-  }
-
-  return {
-    a: assetId,
-    b: isBuy,
-    p: price,
-    s: size,
-    r: reduceOnly,
-    t: orderType
-  };
-}
 
 export default app;
