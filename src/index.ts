@@ -53,26 +53,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Main API endpoint
-app.get('/api/hello', (req, res) => {
-  res.status(200).json({ message: 'Hello caller' });
-});
-
-// Privy user endpoint
-app.get('/api/user', authenticateUser, async (req, res) => {
-  try {
-    const user = (req as any).user;
-    
-    return res.status(200).json({ 
-      success: true,
-      user 
-    });
-  } catch (error) {
-    console.error('Privy user endpoint error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Create order endpoint
 app.post('/api/create_order', authenticateUser, async (req, res) => {
   try {

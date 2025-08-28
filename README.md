@@ -1,4 +1,4 @@
-# UpDownV2 Server
+# UpDown Exchange Server
 
 A modern TypeScript server built with Express.js for Hyperliquid trading integration with Privy authentication and delegated wallet signing.
 
@@ -94,8 +94,6 @@ Returns server information and available endpoints.
   "version": "1.0.0",
   "endpoints": {
     "health": "/health",
-    "hello": "/api/hello",
-    "privyUser": "/api/user",
     "createOrder": "/api/create_order"
   }
 }
@@ -112,39 +110,6 @@ Health check endpoint for monitoring.
 }
 ```
 
-### GET `/api/hello`
-Basic API endpoint that returns "Hello caller".
-
-**Response:**
-```json
-{
-  "message": "Hello caller"
-}
-```
-
-### GET `/api/user`
-Get authenticated user information from Privy.
-
-**Headers:**
-```
-Authorization: Bearer <privy_jwt_token>
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "id": "user_id",
-    "linkedAccounts": [...],
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  }
-}
-```
-
-**Error Responses:**
-- `401 Unauthorized` - Missing or invalid authorization header
-- `500 Internal Server Error` - Authentication failed
 
 ### POST `/api/create_order`
 Create a trading order on Hyperliquid using delegated wallet signing.
@@ -277,12 +242,6 @@ This server uses Privy for authentication and delegated wallet signing:
 ## 🧪 Testing
 
 ### Manual Testing
-
-Test the authentication endpoint:
-```bash
-curl -H "Authorization: Bearer <your_privy_jwt>" \
-     http://localhost:3001/api/user
-```
 
 Test order creation:
 ```bash
