@@ -1,7 +1,6 @@
 import { ExchangeClient, HttpTransport, ErrorResponse, OrderParams, OrderResponse, TIF } from '@nktkas/hyperliquid';
 import PrivyService from './privy.js';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
-import type { WalletWithMetadata } from '@privy-io/server-auth';
 
 class HyperliquidService {
   private static transport: HttpTransport = new HttpTransport();
@@ -9,13 +8,10 @@ class HyperliquidService {
   /**
    * Place an order on Hyperliquid
    */
-  async createOrder(userId: string, walletId: string, walletAddress: `0x${string}`, params: OrderParams): Promise<OrderResponse> {
+  async createOrder(walletId: string, params: OrderParams): Promise<OrderResponse> {
   
     // Create PrivyAbstractWallet that implements signing with Privy
-    const privyWallet = new PrivyAbstractWallet({
-      walletId: walletId,
-      address: walletAddress
-    });
+    const privyWallet = new PrivyAbstractWallet(walletId);
 
     // Create ExchangeClient with PrivyAbstractWallet
     const client = new ExchangeClient({
@@ -30,6 +26,30 @@ class HyperliquidService {
     };
 
     return await client.order(orderParams);
+  }
+
+  /**
+   * Update leverage on Hyperliquid for a specific asset
+   */
+  async updateLeverage(walletId: string, assetId: number, leverage: number) {
+    // Create PrivyAbstractWallet that implements signing with Privy
+    const privyWallet = new PrivyAbstractWallet(walletId);
+
+    // Create ExchangeClient with PrivyAbstractWallet
+    const client = new ExchangeClient({
+      wallet: privyWallet,
+      transport: HyperliquidService.transport,
+      isTestnet: process.env.NODE_ENV !== 'production'
+    });
+
+    // Update leverage parameters
+    const leverageParams = {
+      asset: assetId,
+      isCross: true,
+      leverage: leverage
+    };
+
+    return await client.updateLeverage(leverageParams);
   }
 }
 

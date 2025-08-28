@@ -70,10 +70,8 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
     }
 
     const result = await hyperliquidService.createOrder(
-      user.id, 
       wallet.id,
-      wallet.address as `0x${string}`,
-      orderParams
+      orderParams 
     );
     
     return res.status(200).json({ 
@@ -95,6 +93,66 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
   }
 });
 
+// Update leverage endpoint
+app.post('/api/update_leverage', authenticateUser, async (req, res) => {
+  try {
+    const user = (req as any).user;
+    
+    // Extract and validate leverage parameters
+    const { assetId, leverage } = req.body;
+    
+    if (typeof assetId !== 'number' || typeof leverage !== 'number') {
+      return res.status(400).json({ 
+        error: 'Invalid leverage parameters', 
+        expected: {
+          assetId: 'number (e.g., 0 for BTC)',
+          leverage: 'number (e.g., 5 for 5x leverage)'
+        }
+      });
+    }
+
+    if (leverage < 1 || leverage > 50) {
+      return res.status(400).json({ 
+        error: 'Invalid leverage value', 
+        message: 'Leverage must be between 1 and 50'
+      });
+    }
+    
+    // Create HyperliquidService instance and update leverage
+    const hyperliquidService = new HyperliquidService();
+
+    const wallet = PrivyService.getDelegatedWallet(user);
+    if (!wallet || !wallet.id) {
+      return res.status(400).json({ 
+        error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
+      });
+    }
+
+    const result = await hyperliquidService.updateLeverage(
+      wallet.id,
+      assetId,
+      leverage  
+    );
+    
+    return res.status(200).json({ 
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('Update leverage endpoint error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
+    if (error instanceof Error && error.message.includes('User does not have a wallet')) {
+      return res.status(400).json({ error: 'User does not have a valid wallet' });
+    }
+    
+    return res.status(500).json({ error: 'Failed to update leverage', details: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -102,9 +160,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       health: '/health',
-      hello: '/api/hello',
-      privyUser: '/api/user',
-      createOrder: '/api/create_order'
+      createOrder: '/api/create_order',
+      updateLeverage: '/api/update_leverage'
     }
   });
 });

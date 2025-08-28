@@ -1,17 +1,10 @@
 import PrivyService from '../services/privy.js';
 
-export interface PrivyWalletConfig {
-  walletId: string;
-  address: `0x${string}`;
-}
-
 export class PrivyAbstractWallet {
   private walletId: string;
-  public address: `0x${string}`;
 
-  constructor(config: PrivyWalletConfig) {
-    this.walletId = config.walletId;
-    this.address = config.address;
+  constructor(walletId: string) {
+    this.walletId = walletId;
   }
 
   async signTypedData(params: {
