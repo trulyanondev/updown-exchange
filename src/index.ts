@@ -27,10 +27,10 @@ async function authenticateUser(req: express.Request, res: express.Response, nex
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
     // Verify user authentication
-    const user = await PrivyService.verifyAndGetUser(token);
+    const userId = await PrivyService.verifyAndGetUserId(token);
     
     // Attach user to request object for downstream handlers
-    (req as any).user = user;
+    (req as any).userId = userId;
     
     next();
   } catch (error) {
@@ -56,9 +56,9 @@ app.get('/health', (req, res) => {
 // Create order endpoint
 app.post('/api/create_order', authenticateUser, async (req, res) => {
   try {
-    const user = (req as any).user;
+    const userId = (req as any).userId;
     
-    const wallet = PrivyService.getDelegatedWallet(user);
+    const wallet = await PrivyService.getDelegatedWallet(userId);
     if (!wallet || !wallet.id) {
       return res.status(400).json({ error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing' });
     }
@@ -66,7 +66,7 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
     // Parse and validate request body with zod - automatically typed!
     const orderParams = TradingOrderSchema.parse(req.body);
 
-    const result = await TradingService.createOrder(user.id, wallet.id, orderParams);
+    const result = await TradingService.createOrder(userId, wallet.id, orderParams);
     
     return res.status(200).json({ 
       success: true,
@@ -98,9 +98,9 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
 // Update leverage endpoint
 app.post('/api/update_leverage', authenticateUser, async (req, res) => {
   try {
-    const user = (req as any).user;
+    const userId = (req as any).userId;
     
-    const wallet = PrivyService.getDelegatedWallet(user);
+    const wallet = await PrivyService.getDelegatedWallet(userId);
     if (!wallet || !wallet.id) {
       return res.status(400).json({ 
         error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
@@ -110,7 +110,7 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
     // Parse and validate request body with zod - automatically typed!
     const leverageParams = TradingLeverageSchema.parse(req.body);
 
-    const result = await TradingService.updateLeverage(user.id, wallet.id, leverageParams);
+    const result = await TradingService.updateLeverage(userId, wallet.id, leverageParams);
     
     return res.status(200).json({ 
       success: true,

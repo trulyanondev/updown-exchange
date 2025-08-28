@@ -1,4 +1,5 @@
 import { PrivyClient, User, AuthTokenClaims, WalletWithMetadata } from '@privy-io/server-auth';
+import { getDelegatedWallet as getDelegatedWalletRequest } from './requests/privy/wallets.js';
 
 class PrivyService {
 
@@ -17,16 +18,13 @@ class PrivyService {
   /**
    * Verify token and get user in one call
    */
-  static async verifyAndGetUser(token: string): Promise<User> {
+  static async verifyAndGetUserId(token: string): Promise<String> {
     const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);
-    const user = await PrivyService.getClient().getUserById(verifiedToken.userId);
-    return user;
+    return verifiedToken.userId;
   }
 
-  static getDelegatedWallet(user: User): WalletWithMetadata | undefined {
-    return user.linkedAccounts?.find(
-      account => account.type === 'wallet' && account.id && account.delegated === true
-    ) as WalletWithMetadata | undefined;
+  static async getDelegatedWallet(userId: string): Promise<WalletWithMetadata | undefined> {
+    return await getDelegatedWalletRequest(userId) as WalletWithMetadata | undefined;
   }
 }
 
