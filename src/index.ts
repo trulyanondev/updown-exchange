@@ -66,7 +66,7 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
     // Parse and validate request body with zod - automatically typed!
     const orderParams = TradingOrderSchema.parse(req.body);
 
-    const result = await TradingService.createOrder(userId, wallet.id, orderParams);
+    const result = await TradingService.createOrder(wallet.id, orderParams);
     
     return res.status(200).json({ 
       success: true,
@@ -110,7 +110,7 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
     // Parse and validate request body with zod - automatically typed!
     const leverageParams = TradingLeverageSchema.parse(req.body);
 
-    const result = await TradingService.updateLeverage(userId, wallet.id, leverageParams);
+    const result = await TradingService.updateLeverage(wallet.id, leverageParams);
     
     return res.status(200).json({ 
       success: true,

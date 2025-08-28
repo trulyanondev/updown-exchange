@@ -23,39 +23,28 @@ class TradingService {
   /**
    * Create a trading order
    */
-  static async createOrder(userId: string, walletId: string, params: TradingOrderParams): Promise<OrderResponse> {
-    try {
-      // Map to Hyperliquid format
-      const orderParams: OrderParams = {
+  static async createOrder(walletId: string, params: TradingOrderParams): Promise<OrderResponse> {
+    // Map to Hyperliquid format
+    const orderParams: OrderParams = {
         a: params.assetId,
         b: params.isBuy,
         p: params.price,
         s: params.size,
         r: params.reduceOnly,
         t: params.orderType
-      };
+    };
 
-      // Create order using HyperliquidService
-      const hyperliquidService = new HyperliquidService();
-      return await hyperliquidService.createOrder(walletId, orderParams);
-    } catch (error) {
-      console.error('TradingService - create order error:', error);
-      throw error;
-    }
+    // Create order using HyperliquidService
+    const hyperliquidService = new HyperliquidService();
+    return await hyperliquidService.createOrder(walletId, orderParams);
   }
 
   /**
    * Update leverage for a specific asset
    */
-  static async updateLeverage(userId: string, walletId: string, params: TradingLeverageParams): Promise<any> {
-    try {
-      // Update leverage using HyperliquidService
-      const hyperliquidService = new HyperliquidService();
-      return await hyperliquidService.updateLeverage(walletId, params.assetId, params.leverage);
-    } catch (error) {
-      console.error('TradingService - update leverage error:', error);
-      throw error;
-    }
+  static async updateLeverage(walletId: string, params: TradingLeverageParams): Promise<any> {
+    const hyperliquidService = new HyperliquidService();
+    return await hyperliquidService.updateLeverage(walletId, params.assetId, params.leverage);
   }
 }
 
