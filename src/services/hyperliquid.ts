@@ -1,5 +1,4 @@
-import { ExchangeClient, HttpTransport, ErrorResponse, OrderParams, OrderResponse, TIF } from '@nktkas/hyperliquid';
-import PrivyService from './privy.js';
+import { ExchangeClient, HttpTransport, OrderParams, OrderResponse } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
