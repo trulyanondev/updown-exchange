@@ -13,6 +13,41 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Authentication middleware to verify Privy JWT tokens
+ */
+async function authenticateUser(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Authorization header required with Bearer token');
+    }
+
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    
+    // Verify user authentication
+    const user = await PrivyService.verifyAndGetUser(token);
+    
+    // Attach user to request object for downstream handlers
+    (req as any).user = user;
+    
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      throw new Error('Invalid authentication token');
+    }
+    
+    if (error instanceof Error && error.message.includes('Authorization header required')) {
+      throw new Error(error.message);
+    }
+    
+    throw new Error('Authentication failed');
+  }
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
@@ -24,17 +59,9 @@ app.get('/api/hello', (req, res) => {
 });
 
 // Privy user endpoint
-app.get('/api/user', async (req, res) => {
+app.get('/api/user', authenticateUser, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authorization header required with Bearer token' });
-    }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    const user = await PrivyService.verifyAndGetUser(token);
+    const user = (req as any).user;
     
     return res.status(200).json({ 
       success: true,
@@ -42,32 +69,14 @@ app.get('/api/user', async (req, res) => {
     });
   } catch (error) {
     console.error('Privy user endpoint error:', error);
-    
-    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
-      return res.status(401).json({ error: 'Invalid authentication token' });
-    }
-    
-    if (error instanceof Error && error.message.includes('Failed to fetch user data')) {
-      return res.status(500).json({ error: 'Failed to fetch user data from Privy' });
-    }
-    
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // Create order endpoint
-app.post('/api/create_order', async (req, res) => {
+app.post('/api/create_order', authenticateUser, async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authorization header required with Bearer token' });
-    }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    
-    // Verify user authentication
-    const user = await PrivyService.verifyAndGetUser(token);
+    const user = (req as any).user;
     
     // Extract and validate order parameters, then map to Hyperliquid format
     const orderParams = mapToOrderParams(req.body);
