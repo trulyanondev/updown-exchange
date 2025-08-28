@@ -14,36 +14,6 @@ export interface AgentResponse {
   error?: string;
 }
 
-// JSON Schema for trading plan (without Zod)
-const tradingPlanSchema = {
-  type: "object",
-  properties: {
-    actions: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          tool: {
-            type: "string",
-            enum: ["create_order", "update_leverage"]
-          },
-          params: {
-            type: "object"
-          },
-          reasoning: {
-            type: "string"
-          }
-        },
-        required: ["tool", "params", "reasoning"]
-      }
-    },
-    summary: {
-      type: "string"
-    }
-  },
-  required: ["actions", "summary"]
-};
-
 /**
  * Trading Agent powered by Grok-4 that interprets prompts and executes trading actions
  */
@@ -52,7 +22,7 @@ class TradingAgent {
   private availableTools;
 
   constructor() {
-    this.model = xai('grok-3');
+    this.model = xai('grok-2');
     this.availableTools = getToolDefinitions();
   }
 
@@ -63,7 +33,7 @@ class TradingAgent {
     try {
       const { prompt, walletId } = request;
       
-      // Use Grok-4 to analyze the prompt and plan trading actions
+      // Use Grok to analyze the prompt and plan trading actions
       const planResponse = await generateText({
         model: this.model,
         messages: [
@@ -94,7 +64,7 @@ Analyze the user's request and respond with a JSON object in this exact format:
         "isBuy": boolean (for create_order),
         "price": "string" (for create_order),
         "size": "string" (for create_order),
-        "orderType": {} (for create_order)
+        "orderType": {"limit": {"tif": "Ioc"}} (for create_order)
       },
       "reasoning": "explanation of this action"
     }

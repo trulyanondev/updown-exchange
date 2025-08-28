@@ -24,6 +24,8 @@ class HyperliquidService {
       grouping: 'na'
     };
 
+    console.log('createOrder-service', orderParams);
+
     return await client.order(orderParams);
   }
 
