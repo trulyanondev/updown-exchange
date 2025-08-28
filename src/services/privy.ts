@@ -1,5 +1,4 @@
 import { PrivyClient, User, AuthTokenClaims, WalletWithMetadata } from '@privy-io/server-auth';
-import { getDelegatedWallet as getDelegatedWalletRequest } from './requests/privy/wallets.js';
 
 class PrivyService {
 
@@ -16,7 +15,7 @@ class PrivyService {
   }
 
   /**
-   * Verify token and get user in one call
+   * Verify token and get userId in one call
    */
   static async verifyAndGetUserId(token: string): Promise<String> {
     const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);   
