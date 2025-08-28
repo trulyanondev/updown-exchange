@@ -19,15 +19,8 @@ class PrivyService {
    * Verify token and get user in one call
    */
   static async verifyAndGetUserId(token: string): Promise<String> {
-    const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);
-    const fullUserId = verifiedToken.userId;
-    
-    // Extract the actual user ID from the DID format (did:privy:actual_id)
-    if (fullUserId.startsWith('did:privy:')) {
-      return fullUserId.substring('did:privy:'.length);
-    }
-    
-    return fullUserId;
+    const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);   
+    return verifiedToken.userId;
   }
 
   static async getDelegatedWallet(userId: string): Promise<WalletWithMetadata | undefined> {
