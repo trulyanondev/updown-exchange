@@ -7,7 +7,7 @@ export interface PrivyWalletConfig {
 
 export class PrivyAbstractWallet {
   private walletId: string;
-  public address: string;
+  public address: `0x${string}`;
 
   constructor(config: PrivyWalletConfig) {
     this.walletId = config.walletId;
@@ -19,7 +19,7 @@ export class PrivyAbstractWallet {
       name: string;
       version: string;
       chainId: number;
-      verifyingContract: string;
+      verifyingContract: `0x${string}`;
     };
     types: {
       [key: string]: {
@@ -29,7 +29,7 @@ export class PrivyAbstractWallet {
     };
     primaryType: string;
     message: Record<string, unknown>;
-  }): Promise<string> {
+  }): Promise<`0x${string}`> {
     try {
       const privyClient = PrivyService.getClient();
       
