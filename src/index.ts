@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import PrivyService from './services/privy.js'
 import TradingService, { TradingOrderParams, TradingLeverageParams, TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
+import TradingAgent from './agents/trading_agent.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -139,6 +140,44 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
   }
 });
 
+// Trading agent prompt endpoint
+app.post('/api/prompt', authenticateUser, async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    
+    const wallet = await PrivyService.getDelegatedWallet(userId);
+    if (!wallet || !wallet.id) {
+      return res.status(400).json({ 
+        error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
+      });
+    }
+
+    const { prompt } = req.body;
+    
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ 
+        error: 'Invalid request. Expected: { "prompt": "your trading request" }' 
+      });
+    }
+
+    // Create trading agent and process the prompt
+    const agent = new TradingAgent();
+    const result = await agent.processPrompt({
+      prompt,
+      walletId: wallet.id
+    });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Trading agent endpoint error:', error);
+    
+    return res.status(500).json({ 
+      error: 'Failed to process trading prompt', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -147,7 +186,8 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       createOrder: '/api/create_order',
-      updateLeverage: '/api/update_leverage'
+      updateLeverage: '/api/update_leverage',
+      prompt: '/api/prompt'
     }
   });
 });
