@@ -29,12 +29,12 @@ export class PrivyAbstractWallet {
     };
     primaryType: string;
     message: Record<string, unknown>;
-  }, options?: unknown): Promise<string> {
+  }): Promise<string> {
     try {
       const privyClient = PrivyService.getClient();
       
       // Use Privy's walletApi to sign typed data
-      const response = await privyClient.walletApi.signTypedData({
+      const response = await privyClient.walletApi.ethereum.signTypedData({
         walletId: this.walletId,
         typedData: {
           domain: params.domain,
