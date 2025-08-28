@@ -64,7 +64,7 @@ Analyze the user's request and respond with a JSON object in this exact format:
         "isBuy": boolean (for create_order),
         "price": "string" (for create_order),
         "size": "string" (for create_order),
-        "orderType": {"limit": {"tif": "Ioc"}} (for create_order)
+        "orderType": {"limit": {"tif": "Ioc"}} for limit and { "trigger": { "isMarket": true, "triggerPx": "0", "tpsl": "tp" }} for market (for create_order)
       },
       "reasoning": "explanation of this action"
     }

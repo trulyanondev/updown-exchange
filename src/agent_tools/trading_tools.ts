@@ -41,7 +41,7 @@ export const tradingTools = {
         },
         orderType: {
           type: "object",
-          description: "Order type specification object"
+          description: "Order type specification, {'limit': {'tif': 'Ioc'}} for limit and {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}} for market order"
         }
       },
       required: ["walletId", "assetId", "isBuy", "price", "size", "orderType"]
