@@ -20,11 +20,21 @@ class PrivyService {
    */
   static async verifyAndGetUserId(token: string): Promise<String> {
     const verifiedToken = await PrivyService.getClient().verifyAuthToken(token);
-    return verifiedToken.userId;
+    const fullUserId = verifiedToken.userId;
+    
+    // Extract the actual user ID from the DID format (did:privy:actual_id)
+    if (fullUserId.startsWith('did:privy:')) {
+      return fullUserId.substring('did:privy:'.length);
+    }
+    
+    return fullUserId;
   }
 
   static async getDelegatedWallet(userId: string): Promise<WalletWithMetadata | undefined> {
-    return await getDelegatedWalletRequest(userId) as WalletWithMetadata | undefined;
+    const user = await PrivyService.getClient().getUserById(userId);
+    return user.linkedAccounts?.find(
+      account => account.type === 'wallet' && account.id && account.delegated === true
+    ) as WalletWithMetadata | undefined;
   }
 }
 
