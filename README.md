@@ -94,7 +94,8 @@ Returns server information and available endpoints.
   "version": "1.0.0",
   "endpoints": {
     "health": "/health",
-    "createOrder": "/api/create_order"
+    "createOrder": "/api/create_order",
+    "updateLeverage": "/api/update_leverage"
   }
 }
 ```
@@ -166,6 +167,46 @@ Content-Type: application/json
 - `400 Bad Request` - User does not have a delegated wallet
 - `400 Bad Request` - Invalid order parameters
 - `500 Internal Server Error` - Failed to create order
+
+### POST `/api/update_leverage`
+Update leverage for a specific asset on Hyperliquid using cross-margin mode.
+
+**Headers:**
+```
+Authorization: Bearer <privy_jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "assetId": 0,
+  "leverage": 10
+}
+```
+
+**Parameters:**
+- `assetId` (number): Asset ID (e.g., 0 for BTC)
+- `leverage` (number): Desired leverage amount (1-50)
+
+**Response:**
+```json
+{
+  "success": true,
+  "result": {
+    "response": {
+      "type": "default",
+      "data": null
+    }
+  }
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid authentication token
+- `400 Bad Request` - User does not have a delegated wallet
+- `400 Bad Request` - Invalid leverage parameters or leverage value out of range (1-50)
+- `500 Internal Server Error` - Failed to update leverage
 
 ## 🔧 Configuration
 
@@ -260,6 +301,17 @@ curl -X POST \
        }
      }' \
      http://localhost:3001/api/create_order
+
+Test leverage update:
+```bash
+curl -X POST \
+     -H "Authorization: Bearer <your_privy_jwt>" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "assetId": 0,
+       "leverage": 10
+     }' \
+     http://localhost:3001/api/update_leverage
 ```
 
 ## 🚀 Future Enhancements
