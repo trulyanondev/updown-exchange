@@ -32,9 +32,8 @@ app.get('/api/user', async (req, res) => {
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-    const privyService = new PrivyService();
     
-    const user = await privyService.verifyAndGetUser(token);
+    const user = await PrivyService.verifyAndGetUser(token);
     
     return res.status(200).json({ 
       success: true,
