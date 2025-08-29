@@ -1,6 +1,7 @@
 import HyperliquidService from './hyperliquid.js';
 import { OrderParams, OrderResponse } from '@nktkas/hyperliquid';
 import { z } from 'zod';
+import MarketDataService from './marketdata.js';
 
 export const TradingOrderSchema = z.object({
   assetId: z.number(),
@@ -24,17 +25,25 @@ class TradingService {
    * Create a trading order
    */
   static async createOrder(walletId: string, params: TradingOrderParams): Promise<OrderResponse> {
+    
+    const szDecimals = (await MarketDataService.getPerpMetadataByAssetId(params.assetId)).szDecimals;
+
+    const perpDecimalBase = 6;
+    const maxPriceDecimals = perpDecimalBase - szDecimals;
+
+    // Format to expected Hyperliquid precision
+    const price = Number(Number(params.price).toPrecision(5)).toFixed(maxPriceDecimals);
+    const size = Number(Number(params.size).toPrecision(5)).toFixed(szDecimals);
+
     // Map to Hyperliquid format
     const orderParams: OrderParams = {
         a: params.assetId,
         b: params.isBuy,
-        p: params.price,
-        s: params.size,
+        p: price.toString(),
+        s: size.toString(),
         r: params.reduceOnly,
         t: params.orderType
     };
-
-    console.log('Creating order:', orderParams);
 
     // Create order using HyperliquidService
     const hyperliquidService = new HyperliquidService();

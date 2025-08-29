@@ -33,24 +33,42 @@ class MarketDataService {
     return MarketDataService.redisClient;
   }
 
-  async getPerpMetadata(symbol: string): Promise<PerpMetadata> {
+  /**
+   * Get perpetual metadata for a token symbol
+   */
+  static async getPerpMetadata(symbol: string): Promise<PerpMetadata> {
     const universeDict = await MarketDataService.getPerpetualsMetadata();
     const metadata = universeDict[symbol.toLowerCase()];
-    
     if (!metadata) {
       throw new Error(`Perpetual metadata not found for symbol: ${symbol}`);
     }
-    
+    return metadata;
+  }
+
+  /**
+   * Get perpetual metadata for a token by asset ID
+   */
+  static async getPerpMetadataByAssetId(assetId: number): Promise<PerpMetadata> {
+    const universeDict = await MarketDataService.getPerpetualsMetadata();
+    const metadata = Object.values(universeDict).find(meta => meta.assetId === assetId);
+    if (!metadata) {
+      throw new Error(`Perpetual metadata not found for asset ID: ${assetId}`);
+    }
     return metadata;
   }
   
-  async getCurrentPrice(symbol: string): Promise<number> {
+  static async getCurrentPrice(symbol: string): Promise<number> {
     const currentPrices = await MarketDataService.getCurrentPrices();
     const price = currentPrices[symbol.toLowerCase()];
     if (!price) {
       throw new Error(`Current price not found for symbol: ${symbol}`);
     }
     return price;
+  }
+
+  static async getAllPerpSymbols(): Promise<string[]> {
+    const universeDict = await MarketDataService.getPerpetualsMetadata();
+    return Object.keys(universeDict);
   }
 
   /**

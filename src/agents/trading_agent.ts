@@ -22,7 +22,7 @@ class TradingAgent {
   private availableTools;
 
   constructor() {
-    this.model = xai('grok-2');
+    this.model = xai('grok-3');
     this.availableTools = getToolDefinitions();
   }
 
@@ -45,12 +45,14 @@ Available tools:
 ${JSON.stringify(this.availableTools, null, 2)}
 
 IMPORTANT WORKFLOW:
-1. ALWAYS use get_perp_metadata first to resolve symbols to assetId and get maxLeverage
-2. Use get_current_price to get market price for limit orders (add 0.1% padding for buys, subtract 0.1% for sells)
-3. Validate leverage against maxLeverage from metadata
-4. Then execute trading actions
+1. ALWAYS use get_all_perp_symbols first to get the latest available trading symbols
+2. Use get_perp_metadata to resolve symbols to assetId and get maxLeverage
+3. Use get_current_price to get market price for limit orders (add 0.1% padding for buys, subtract 0.1% for sells)
+4. Validate leverage against maxLeverage from metadata
+5. Then execute trading actions
 
 Smart Guidelines:
+- ALWAYS start with get_all_perp_symbols() to ensure you have the latest available symbols
 - Use get_perp_metadata(symbol) to get assetId and maxLeverage for ANY symbol (BTC, ETH, SOL, etc.)
 - Use get_current_price(symbol) for limit orders when user doesn't specify price
 - Add price padding: Buy orders +0.1%, Sell orders -0.1% of current price
@@ -60,10 +62,11 @@ Smart Guidelines:
 - Always include walletId: ${walletId}
 
 EXAMPLE WORKFLOW for "Buy $100 worth of BTC with 10x leverage":
-1. get_perp_metadata("BTC") → get assetId and maxLeverage
-2. get_current_price("BTC") → get current price, add 0.1% for buy order
-3. update_leverage if needed (assetId will be auto-resolved)
-4. create_order with calculated values (assetId, price, size auto-resolved)
+1. get_all_perp_symbols() → get latest available symbols
+2. get_perp_metadata("BTC") → get assetId and maxLeverage
+3. get_current_price("BTC") → get current price, add 0.1% for buy order
+4. update_leverage if needed (assetId will be auto-resolved)
+5. create_order with calculated values (assetId, price, size auto-resolved)
 
 IMPORTANT: For create_order, you can use placeholder values that will be automatically resolved:
 - assetId: Will be resolved from get_perp_metadata result
@@ -74,7 +77,7 @@ Analyze the user's request and respond with a JSON object in this exact format:
 {
   "actions": [
     {
-      "tool": "get_perp_metadata" | "get_current_price" | "update_leverage" | "create_order",
+      "tool": "get_all_perp_symbols" | "get_perp_metadata" | "get_current_price" | "update_leverage" | "create_order",
       "params": {
         "symbol": "string" (for get_perp_metadata, get_current_price),
         "walletId": "${walletId}" (for update_leverage, create_order),
@@ -267,6 +270,7 @@ Key features:
 - Real-time price discovery and intelligent order pricing with margin padding
 - Automatic leverage validation against asset limits
 - Smart order execution with market data integration
+- Always gets the latest available trading symbols before executing trades
 
 Keep it concise and user-friendly.`
         },

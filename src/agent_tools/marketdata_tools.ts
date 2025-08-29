@@ -23,8 +23,7 @@ export const marketDataTools = {
       required: ["symbol"]
     },
     handler: async (params: { symbol: string }) => {
-      const service = new MarketDataService();
-      return await service.getCurrentPrice(params.symbol);
+      return await MarketDataService.getCurrentPrice(params.symbol);
     }
   },
 
@@ -45,8 +44,23 @@ export const marketDataTools = {
       required: ["symbol"]
     },
     handler: async (params: { symbol: string }) => {
-      const service = new MarketDataService();
-      return await service.getPerpMetadata(params.symbol);
+      return await MarketDataService.getPerpMetadata(params.symbol);
+    }
+  },
+
+  /**
+   * Get all available perpetual trading symbols
+   */
+  getAllPerpSymbols: {
+    name: "get_all_perp_symbols",
+    description: "Get all available perpetual trading symbols on Hyperliquid exchange",
+    parameters: {
+      type: "object",
+      properties: {},
+      required: []
+    },
+    handler: async () => {
+      return await MarketDataService.getAllPerpSymbols();
     }
   }
 };

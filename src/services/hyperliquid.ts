@@ -27,7 +27,14 @@ class HyperliquidService {
 
     console.log('createOrder-service', JSON.stringify(orderParams, null, 2));
 
-    return await client.order(orderParams);
+    try {
+      let response = await client.order(orderParams);
+      console.log('createOrder-service', JSON.stringify(response, null, 2));
+      return response;
+    } catch (error) {
+      console.error('createOrder-service', error);
+      throw error;
+    }
   }
 
   /**
