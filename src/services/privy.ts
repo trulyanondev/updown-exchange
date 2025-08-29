@@ -1,4 +1,4 @@
-import { PrivyClient, User, AuthTokenClaims, WalletWithMetadata } from '@privy-io/server-auth';
+import { PrivyClient, WalletWithMetadata } from '@privy-io/server-auth';
 
 class PrivyService {
 

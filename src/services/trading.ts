@@ -34,6 +34,8 @@ class TradingService {
         t: params.orderType
     };
 
+    console.log('Creating order:', orderParams);
+
     // Create order using HyperliquidService
     const hyperliquidService = new HyperliquidService();
     return await hyperliquidService.createOrder(walletId, orderParams);

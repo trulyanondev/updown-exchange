@@ -39,32 +39,51 @@ class TradingAgent {
         messages: [
           {
             role: 'system',
-            content: `You are a trading agent that helps users execute trading actions on Hyperliquid exchange.
+            content: `You are an intelligent trading agent that helps users execute trading actions on Hyperliquid exchange.
 
 Available tools:
 ${JSON.stringify(this.availableTools, null, 2)}
 
-Guidelines:
-- Asset IDs: 0 = BTC, 1 = ETH
-- Leverage must be 1-50
-- Prices should be strings (e.g. "50000.5")
-- Sizes should be strings (e.g. "0.1")
-- Order types: {"limit": {}} or {"market": {}}
-- Always include the walletId: ${walletId}
+IMPORTANT WORKFLOW:
+1. ALWAYS use get_perp_metadata first to resolve symbols to assetId and get maxLeverage
+2. Use get_current_price to get market price for limit orders (add 0.1% padding for buys, subtract 0.1% for sells)
+3. Validate leverage against maxLeverage from metadata
+4. Then execute trading actions
+
+Smart Guidelines:
+- Use get_perp_metadata(symbol) to get assetId and maxLeverage for ANY symbol (BTC, ETH, SOL, etc.)
+- Use get_current_price(symbol) for limit orders when user doesn't specify price
+- Add price padding: Buy orders +0.1%, Sell orders -0.1% of current price
+- Validate leverage <= maxLeverage from metadata
+- Prices and sizes must be strings
+- Order types: {"limit": {"tif": "Ioc"}} for limit, {"trigger": {"isMarket": true, "triggerPx": "0", "tpsl": "tp"}} for market
+- Always include walletId: ${walletId}
+
+EXAMPLE WORKFLOW for "Buy $100 worth of BTC with 10x leverage":
+1. get_perp_metadata("BTC") → get assetId and maxLeverage
+2. get_current_price("BTC") → get current price, add 0.1% for buy order
+3. update_leverage if needed (assetId will be auto-resolved)
+4. create_order with calculated values (assetId, price, size auto-resolved)
+
+IMPORTANT: For create_order, you can use placeholder values that will be automatically resolved:
+- assetId: Will be resolved from get_perp_metadata result
+- price: Will be resolved from get_current_price + padding
+- size: Use format like "calculated from $100 and current price" for dollar amounts
 
 Analyze the user's request and respond with a JSON object in this exact format:
 {
   "actions": [
     {
-      "tool": "update_leverage" or "create_order",
+      "tool": "get_perp_metadata" | "get_current_price" | "update_leverage" | "create_order",
       "params": {
-        "walletId": "${walletId}",
-        "assetId": 0 or 1,
+        "symbol": "string" (for get_perp_metadata, get_current_price),
+        "walletId": "${walletId}" (for update_leverage, create_order),
+        "assetId": number (for update_leverage, create_order - from metadata),
         "leverage": number (for update_leverage),
         "isBuy": boolean (for create_order),
-        "price": "string" (for create_order),
+        "price": "string" (for create_order - from current price + padding),
         "size": "string" (for create_order),
-        "orderType": {"limit": {"tif": "Ioc"}} for limit and { "trigger": { "isMarket": true, "triggerPx": "0", "tpsl": "tp" }} for market (for create_order)
+        "orderType": object (for create_order)
       },
       "reasoning": "explanation of this action"
     }
@@ -97,14 +116,76 @@ Only respond with valid JSON, no other text.`
         };
       }
 
-      // Execute the planned actions
+      // Execute the planned actions sequentially with context sharing
       const results = [];
+      const actionContext: any = { walletId };
+      
+      // Pre-scan actions to gather context needed for price calculations
+      for (const action of plan.actions) {
+        if (action.tool === 'create_order' && action.params.isBuy !== undefined) {
+          actionContext.isBuy = action.params.isBuy;
+        }
+      }
+      
       for (const action of plan.actions) {
         try {
-          // Add walletId to params if not present
-          const params = { ...action.params, walletId };
+          // Smart parameter resolution with context values
+          let params = { ...action.params };
+          
+          // For create_order actions, resolve calculated values
+          if (action.tool === 'create_order') {
+            // Override with context values for resolved parameters
+            if (actionContext.assetId !== undefined) {
+              params.assetId = actionContext.assetId;
+            }
+            if (actionContext.paddedPrice !== undefined) {
+              params.price = actionContext.paddedPrice;
+            }
+            if (actionContext.walletId !== undefined) {
+              params.walletId = actionContext.walletId;
+            }
+            
+            // Calculate size if it's a placeholder and we have required context
+            if (typeof params.size === 'string' && 
+                params.size.includes('calculated') && 
+                actionContext.currentPrice) {
+              // Try to extract dollar amount from size description
+              const dollarMatch = params.size.match(/\$(\d+(?:\.\d+)?)/);
+              if (dollarMatch) {
+                const dollarAmount = parseFloat(dollarMatch[1]);
+                const calculatedSize = (dollarAmount / actionContext.currentPrice).toString();
+                params.size = calculatedSize;
+              }
+            }
+          }
+          
+          // For update_leverage actions, ensure assetId is resolved
+          if (action.tool === 'update_leverage' && actionContext.assetId !== undefined) {
+            params.assetId = actionContext.assetId;
+            params.walletId = actionContext.walletId;
+          }
+          
+          // Merge any remaining context values
+          params = { ...params, ...actionContext };
           
           const result = await executeAgentTool(action.tool, params);
+          
+          // Store results in context for subsequent actions
+          if (action.tool === 'get_perp_metadata') {
+            actionContext.assetId = result.assetId;
+            actionContext.maxLeverage = result.maxLeverage;
+            actionContext.symbol = params.symbol;
+          } else if (action.tool === 'get_current_price') {
+            actionContext.currentPrice = result;
+            
+            // Apply padding for limit orders
+            const isBuy = actionContext.isBuy;
+            if (isBuy !== undefined) {
+              const paddingMultiplier = isBuy ? 1.001 : 0.999; // +0.1% for buy, -0.1% for sell
+              actionContext.paddedPrice = (result * paddingMultiplier).toString();
+            }
+          }
+          
           results.push({
             tool: action.tool,
             success: true,
@@ -120,6 +201,11 @@ Only respond with valid JSON, no other text.`
             reasoning: action.reasoning,
             params: action.params
           });
+          
+          // Stop execution on error for critical steps
+          if (action.tool === 'get_perp_metadata' || action.tool === 'get_current_price') {
+            break;
+          }
         }
       }
 
@@ -172,11 +258,17 @@ Please provide a clear summary of what was accomplished.`
       messages: [
         {
           role: 'system',
-          content: `You are a trading assistant. Explain what trading capabilities you have based on these tools:
+          content: `You are an intelligent trading assistant. Explain what trading capabilities you have based on these tools:
 
 ${JSON.stringify(this.availableTools, null, 2)}
 
-Keep it concise and user-friendly. Mention that you support BTC (asset 0) and ETH (asset 1).`
+Key features:
+- Support for ANY cryptocurrency symbol (BTC, ETH, SOL, etc.) with automatic symbol resolution
+- Real-time price discovery and intelligent order pricing with margin padding
+- Automatic leverage validation against asset limits
+- Smart order execution with market data integration
+
+Keep it concise and user-friendly.`
         },
         {
           role: 'user',

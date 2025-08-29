@@ -17,12 +17,13 @@ app.use(express.json());
 /**
  * Authentication middleware to verify Privy JWT tokens
  */
-async function authenticateUser(req: express.Request, res: express.Response, next: express.NextFunction) {
+async function authenticateUser(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Authorization header required with Bearer token');
+      res.status(401).json({ error: 'Authorization header required with Bearer token' });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -37,15 +38,15 @@ async function authenticateUser(req: express.Request, res: express.Response, nex
   } catch (error) {
     console.error('Authentication error:', error);
     
-    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
-      throw new Error('Invalid authentication token');
+    // Handle expired or invalid tokens gracefully
+    if (error instanceof Error) {
+      if (error.message.includes('expired') || error.message.includes('invalid') || error.message.includes('malformed')) {
+        res.status(401).json({ error: 'Invalid or expired authentication token' });
+        return;
+      }
     }
     
-    if (error instanceof Error && error.message.includes('Authorization header required')) {
-      throw new Error(error.message);
-    }
-    
-    throw new Error('Authentication failed');
+    res.status(401).json({ error: 'Authentication failed' });
   }
 }
 

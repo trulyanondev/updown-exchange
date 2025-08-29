@@ -1,4 +1,5 @@
 import TradingService, { TradingOrderParams, TradingLeverageParams } from '../services/trading.js';
+import { marketDataTools } from './marketdata_tools.js';
 
 /**
  * Agent callable tool definitions for trading operations
@@ -6,6 +7,8 @@ import TradingService, { TradingOrderParams, TradingLeverageParams } from '../se
  */
 
 export const tradingTools = {
+  // Market data tools
+  ...marketDataTools,
   /**
    * Create a trading order on Hyperliquid
    */
@@ -125,7 +128,7 @@ export async function executeAgentTool(toolName: string, params: any) {
   }
   
   if (!tool) {
-    throw new Error(`Unknown tool: ${toolName}`);
+    throw new Error(`Unknown trading tool: ${toolName}`);
   }
 
   return await tool.handler(params);
@@ -158,9 +161,9 @@ export function getMCPToolDefinitions() {
       inputSchema: tool.parameters
     })),
     server_info: {
-      name: "UpDown Trading Agent Tools",
+      name: "UpDown Trading & Market Data Tools",
       version: "1.0.0",
-      description: "Internal agent tools for trading operations",
+      description: "Internal agent tools for trading and market data operations",
       access: "internal_only"
     }
   };

@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 import { PerpsUniverse } from '@nktkas/hyperliquid';
 import HyperliquidService from './hyperliquid.js';
 
@@ -22,10 +22,20 @@ class MarketDataService {
   private static readonly CURRENT_PRICES_CACHE_TTL_SECONDS = 5; // 5 seconds
   
   private static hyperliquidService: HyperliquidService = new HyperliquidService();
+  
+  // Initialize Redis client lazily
+  private static redisClient: any = null;
+  
+  private static async getRedis() {
+    if (!MarketDataService.redisClient) {
+      MarketDataService.redisClient = await createClient().connect();
+    }
+    return MarketDataService.redisClient;
+  }
 
   async getPerpMetadata(symbol: string): Promise<PerpMetadata> {
     const universeDict = await MarketDataService.getPerpetualsMetadata();
-    const metadata = universeDict[symbol];
+    const metadata = universeDict[symbol.toLowerCase()];
     
     if (!metadata) {
       throw new Error(`Perpetual metadata not found for symbol: ${symbol}`);
@@ -36,7 +46,7 @@ class MarketDataService {
   
   async getCurrentPrice(symbol: string): Promise<number> {
     const currentPrices = await MarketDataService.getCurrentPrices();
-    const price = currentPrices[symbol];
+    const price = currentPrices[symbol.toLowerCase()];
     if (!price) {
       throw new Error(`Current price not found for symbol: ${symbol}`);
     }
@@ -44,64 +54,92 @@ class MarketDataService {
   }
 
   /**
-   * Get current prices for all assets with KV caching
+   * Get current prices for all assets with Redis caching
    * Checks cache first, fetches from Hyperliquid API if not available, then caches for 5 seconds
    */
   private static async getCurrentPrices(): Promise<CoinPrices> {
-    const cachedData = await kv.get<CoinPrices>(MarketDataService.CURRENT_PRICES_KEY);
-    if (cachedData) {
-      return cachedData;
+    try {
+      const redis = await MarketDataService.getRedis();
+      const cachedData = await redis.get(MarketDataService.CURRENT_PRICES_KEY);
+      
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+
+      const mids = await MarketDataService.hyperliquidService.getAllMids();
+      const currentPrices = Object.fromEntries(
+          Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
+      );
+
+      await redis.setEx(
+        MarketDataService.CURRENT_PRICES_KEY,
+        MarketDataService.CURRENT_PRICES_CACHE_TTL_SECONDS,
+        JSON.stringify(currentPrices)
+      );
+
+      return currentPrices;
+    } catch (error) {
+      console.error('Redis error in getCurrentPrices, falling back to direct API call:', error);
+      
+      // Fallback to direct API call if Redis fails
+      const mids = await MarketDataService.hyperliquidService.getAllMids();
+      return Object.fromEntries(
+          Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
+      );
     }
-
-    const mids = await MarketDataService.hyperliquidService.getAllMids();
-    const currentPrices = Object.fromEntries(
-        Object.entries(mids).map(([coin, midPx]) => [coin, Number(midPx)])
-    );
-
-    await kv.setex(
-      MarketDataService.CURRENT_PRICES_KEY,
-      MarketDataService.CURRENT_PRICES_CACHE_TTL_SECONDS,
-      currentPrices
-    );
-
-    return currentPrices;
   }
 
   /**
-   * Get perpetuals universe dictionary with KV caching
+   * Get perpetuals universe dictionary with Redis caching
    * Checks cache first, fetches from Hyperliquid API if not available, then caches for 24 hours
    * Returns a dictionary keyed by asset name with universe data including assetId
    */
   private static async getPerpetualsMetadata(): Promise<PerpetualsUniverseDict> {
-
-    // Try to get from cache first
-    const cachedData = await kv.get<PerpetualsUniverseDict>(MarketDataService.PERPETUALS_METADATA_KEY);
+    try {
+      const redis = await MarketDataService.getRedis();
+      const cachedData = await redis.get(MarketDataService.PERPETUALS_METADATA_KEY);
       
-    if (cachedData) {
-      return cachedData;
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+
+      // Cache miss - fetch from Hyperliquid API
+      const metadata = await MarketDataService.hyperliquidService.getPerpetualsMetadata();
+
+      // Transform universe array into dictionary keyed by name
+      const universeDict: PerpetualsUniverseDict = {};
+      metadata.universe.forEach((universe, index) => {
+        universeDict[universe.name.toLowerCase()] = {
+          ...universe,
+          assetId: index
+        };
+      });
+
+      // Cache the result with 24-hour TTL
+      await redis.setEx(
+        MarketDataService.PERPETUALS_METADATA_KEY,
+        MarketDataService.PERPETUALS_METADATA_CACHE_TTL_SECONDS,
+        JSON.stringify(universeDict)
+      );
+
+      console.log('Fetched and cached perpetuals universe dictionary');
+      return universeDict;
+    } catch (error) {
+      console.error('Redis error in getPerpetualsMetadata, falling back to direct API call:', error);
+      
+      // Fallback to direct API call if Redis fails
+      const metadata = await MarketDataService.hyperliquidService.getPerpetualsMetadata();
+      
+      const universeDict: PerpetualsUniverseDict = {};
+      metadata.universe.forEach((universe, index) => {
+        universeDict[universe.name.toLowerCase()] = {
+          ...universe,
+          assetId: index
+        };
+      });
+      
+      return universeDict;
     }
-
-    // Cache miss - fetch from Hyperliquid API
-    const metadata = await MarketDataService.hyperliquidService.getPerpetualsMetadata();
-
-    // Transform universe array into dictionary keyed by name
-    const universeDict: PerpetualsUniverseDict = {};
-    metadata.universe.forEach((universe, index) => {
-      universeDict[universe.name] = {
-        ...universe,
-        assetId: index
-      };
-    });
-
-    // Cache the result with 24-hour TTL
-    await kv.setex(
-      MarketDataService.PERPETUALS_METADATA_KEY,
-      MarketDataService.PERPETUALS_METADATA_CACHE_TTL_SECONDS,
-      universeDict
-    );
-
-    console.log('Fetched and cached perpetuals universe dictionary');
-    return universeDict;
   }
 }
 
