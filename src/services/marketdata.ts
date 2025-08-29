@@ -43,6 +43,10 @@ class MarketDataService {
     return price;
   }
 
+  /**
+   * Get current prices for all assets with KV caching
+   * Checks cache first, fetches from Hyperliquid API if not available, then caches for 5 seconds
+   */
   private static async getCurrentPrices(): Promise<CoinPrices> {
     const cachedData = await kv.get<CoinPrices>(MarketDataService.CURRENT_PRICES_KEY);
     if (cachedData) {
