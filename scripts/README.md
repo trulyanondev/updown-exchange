@@ -1,6 +1,6 @@
 # Trading Client Scripts
 
-Python client for interacting with the UpDown Trading API.
+Python client for interacting with the Hyperliquid Exchange Trading API.
 
 ## Setup
 
@@ -56,7 +56,7 @@ python trading_client.py
 ## Example Session
 
 ```
-🚀 UpDown Trading Client
+🚀 Hyperliquid Perpetuals Trading Client
 ==================================================
 ✅ API server is running
 

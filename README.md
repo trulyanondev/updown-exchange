@@ -1,4 +1,4 @@
-# UpDown Exchange Server
+# Hyperliquid Exchange Server
 
 A modern TypeScript server built with Express.js for Hyperliquid trading integration with Privy authentication and delegated wallet signing.
 
@@ -90,7 +90,7 @@ Returns server information and available endpoints.
 **Response:**
 ```json
 {
-  "message": "UpDown Server API",
+  "message": "Hyperliquid Perpetuals Trading Server API",
   "version": "1.0.0",
   "endpoints": {
     "health": "/health",

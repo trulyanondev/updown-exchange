@@ -184,7 +184,7 @@ app.post('/api/prompt', authenticateUser, async (req, res) => {
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
-    message: 'UpDown Server API',
+    message: 'Hyperliquid Exchange Server API',
     version: '1.0.0',
     endpoints: {
       health: '/health',

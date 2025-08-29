@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Trading Client Script
-Interactive client for UpDown Trading API
+Interactive client for Hyperliquid Trading API
 
 Usage: python trading_client.py
 """
@@ -96,7 +96,7 @@ class TradingClient:
 def main():
     client = TradingClient()
     
-    print("🚀 UpDown Trading Client")
+    print("🚀 Hyperliquid Trading Client")
     print("=" * 50)
     
     # Check if server is running

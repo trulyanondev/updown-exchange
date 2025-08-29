@@ -161,7 +161,7 @@ export function getMCPToolDefinitions() {
       inputSchema: tool.parameters
     })),
     server_info: {
-      name: "UpDown Trading & Market Data Tools",
+      name: "Perpetuals Trading & Market Data Tools",
       version: "1.0.0",
       description: "Internal agent tools for trading and market data operations",
       access: "internal_only"
