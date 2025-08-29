@@ -22,7 +22,7 @@ class TradingAgent {
   private availableTools;
 
   constructor() {
-    this.model = xai('grok-3');
+    this.model = xai('grok-4');
     this.availableTools = getToolDefinitions();
   }
 
@@ -53,6 +53,7 @@ IMPORTANT WORKFLOW:
 
 Smart Guidelines:
 - ALWAYS start with get_all_perp_symbols() to ensure you have the latest available symbols
+- Names of symbols may be similar to each other, so you need to be careful to use the correct symbol (ie. "HYPE" vs. "HYPER")
 - Use get_perp_metadata(symbol) to get assetId and maxLeverage for ANY symbol (BTC, ETH, SOL, etc.)
 - Use get_current_price(symbol) for limit orders when user doesn't specify price
 - Add price padding: Buy orders +0.1%, Sell orders -0.1% of current price

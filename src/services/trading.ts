@@ -31,16 +31,25 @@ class TradingService {
     const perpDecimalBase = 6;
     const maxPriceDecimals = perpDecimalBase - szDecimals;
 
+    const price = Number(params.price);
+    let size = Number(params.size);
+
+    const minOrderSize = 10.01;
+
+    if (price * size < minOrderSize) {
+        size = minOrderSize / price;
+    }
+
     // Format to expected Hyperliquid precision
-    const price = Number(Number(params.price).toPrecision(5)).toFixed(maxPriceDecimals);
-    const size = Number(Number(params.size).toPrecision(5)).toFixed(szDecimals);
+    const finalPrice = Number(price.toPrecision(5)).toFixed(maxPriceDecimals);
+    const finalSize = Number(size.toPrecision(5)).toFixed(szDecimals);
 
     // Map to Hyperliquid format
     const orderParams: OrderParams = {
         a: params.assetId,
         b: params.isBuy,
-        p: price.toString(),
-        s: size.toString(),
+        p: finalPrice.toString(),
+        s: finalSize.toString(),
         r: params.reduceOnly,
         t: params.orderType
     };

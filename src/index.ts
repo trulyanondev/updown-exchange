@@ -143,6 +143,8 @@ app.post('/api/update_leverage', authenticateUser, async (req, res) => {
 
 // Trading agent prompt endpoint
 app.post('/api/prompt', authenticateUser, async (req, res) => {
+
+  req.setTimeout(120000);
   try {
     const userId = (req as any).userId;
     

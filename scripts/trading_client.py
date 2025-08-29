@@ -47,7 +47,7 @@ class TradingClient:
                 f"{self.base_url}/api/prompt",
                 headers=self.headers,
                 json={"prompt": prompt},
-                timeout=30
+                timeout=120
             )
             
             return response.json()
