@@ -1,8 +1,9 @@
-import { ExchangeClient, HttpTransport, OrderParams, OrderResponse } from '@nktkas/hyperliquid';
+import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
   private static transport: HttpTransport = new HttpTransport();
+  private static infoClient: InfoClient = new InfoClient({ transport: HyperliquidService.transport });
 
   /**
    * Place an order on Hyperliquid
@@ -51,6 +52,13 @@ class HyperliquidService {
     };
 
     return await client.updateLeverage(leverageParams);
+  }
+
+  /**
+   * Get perpetuals metadata including trading universes and margin tables
+   */
+  async getPerpetualsMetadata(): Promise<PerpsMeta> {
+    return await HyperliquidService.infoClient.meta();
   }
 }
 
