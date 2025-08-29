@@ -1,4 +1,4 @@
-import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta } from '@nktkas/hyperliquid';
+import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
@@ -59,6 +59,13 @@ class HyperliquidService {
    */
   async getPerpetualsMetadata(): Promise<PerpsMeta> {
     return await HyperliquidService.infoClient.meta();
+  }
+
+  /**
+   * Get all mid prices for all assets
+   */
+  async getAllMids(): Promise<AllMids> {
+    return await HyperliquidService.infoClient.allMids();
   }
 }
 

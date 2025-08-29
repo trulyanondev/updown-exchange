@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { PerpsMeta, PerpsUniverse } from '@nktkas/hyperliquid';
+import { PerpsUniverse } from '@nktkas/hyperliquid';
 import HyperliquidService from './hyperliquid.js';
 
 export interface PerpMetadata extends PerpsUniverse {
@@ -10,9 +10,16 @@ export interface PerpetualsUniverseDict {
   [name: string]: PerpMetadata;
 }
 
+export interface CoinPrices {
+    [coin: string]: number;
+}
+
 class MarketDataService {
   private static readonly PERPETUALS_METADATA_KEY = 'perpetuals_metadata';
-  private static readonly CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+  private static readonly PERPETUALS_METADATA_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
+
+  private static readonly CURRENT_PRICES_KEY = 'current_prices';
+  private static readonly CURRENT_PRICES_CACHE_TTL_SECONDS = 5; // 5 seconds
   
   private static hyperliquidService: HyperliquidService = new HyperliquidService();
 
@@ -25,6 +32,35 @@ class MarketDataService {
     }
     
     return metadata;
+  }
+  
+  async getCurrentPrice(symbol: string): Promise<number> {
+    const currentPrices = await MarketDataService.getCurrentPrices();
+    const price = currentPrices[symbol];
+    if (!price) {
+      throw new Error(`Current price not found for symbol: ${symbol}`);
+    }
+    return price;
+  }
+
+  private static async getCurrentPrices(): Promise<CoinPrices> {
+    const cachedData = await kv.get<CoinPrices>(MarketDataService.CURRENT_PRICES_KEY);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const mids = await MarketDataService.hyperliquidService.getAllMids();
+    const currentPrices = Object.fromEntries(
+        Object.entries(mids).map(([coin, midPx]) => [coin, Number(midPx)])
+    );
+
+    await kv.setex(
+      MarketDataService.CURRENT_PRICES_KEY,
+      MarketDataService.CURRENT_PRICES_CACHE_TTL_SECONDS,
+      currentPrices
+    );
+
+    return currentPrices;
   }
 
   /**
@@ -56,7 +92,7 @@ class MarketDataService {
     // Cache the result with 24-hour TTL
     await kv.setex(
       MarketDataService.PERPETUALS_METADATA_KEY,
-      MarketDataService.CACHE_TTL_SECONDS,
+      MarketDataService.PERPETUALS_METADATA_CACHE_TTL_SECONDS,
       universeDict
     );
 
