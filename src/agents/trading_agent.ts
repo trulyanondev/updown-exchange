@@ -1,5 +1,5 @@
-import { xai } from '@ai-sdk/xai';
-import { generateObject, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
 import { executeAgentTool, getToolDefinitions } from '../agent_tools/trading_tools.js';
 
 export interface AgentRequest {
@@ -15,25 +15,25 @@ export interface AgentResponse {
 }
 
 /**
- * Trading Agent powered by Grok-4 that interprets prompts and executes trading actions
+ * Trading Agent powered by an LLM that interprets prompts and executes trading actions
  */
 class TradingAgent {
   private model;
   private availableTools;
 
   constructor() {
-    this.model = xai('grok-4');
+    this.model = openai('gpt-5-nano');
     this.availableTools = getToolDefinitions();
   }
 
   /**
-   * Process a trading prompt using Grok-4 and execute required actions
+   * Process a trading prompt using an LLM and execute required actions
    */
   async processPrompt(request: AgentRequest): Promise<AgentResponse> {
     try {
       const { prompt, walletId } = request;
       
-      // Use Grok to analyze the prompt and plan trading actions
+      // Use an LLM to analyze the prompt and plan trading actions
       const planResponse = await generateText({
         model: this.model,
         messages: [
@@ -213,7 +213,7 @@ Only respond with valid JSON, no other text.`
         }
       }
 
-      // Generate a final response using Grok
+      // Generate a final response using an LLM
       const responseText = await generateText({
         model: this.model,
         messages: [
