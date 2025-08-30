@@ -32,7 +32,7 @@ export async function analyzeInputNode(state: GraphStateType): Promise<Partial<G
 You are a trading assistant analyzing user input to determine:
 1. Which trading symbols are mentioned or implied
 2. Which of those symbols need current price data for the user's request
-3. Which of those symbols need orders to be placed (buy/sell/close operations)
+3. Which of those symbols need orders to be placed (with specific order prompts)
 4. Which of those symbols need leverage updates and what is the desired leverage
 
 Available trading symbols: ${availableSymbols.join(', ')}
@@ -44,14 +44,14 @@ Common symbol mappings:
 - And many others in the available symbols list
 
 Examples:
-- "buy $10 of bitcoin" → BTC symbol, needs price (to convert $10 to BTC amount), needs order, no leverage update
-- "update btc to 22x leverage" → BTC symbol, doesn't need price, doesn't need order, needs leverage update
-- "sell all my eth" → ETH symbol, might need price (depending on context), needs order, no leverage update
-- "show me btc price" → BTC symbol, needs price, doesn't need order, no leverage update
-- "set stop loss on sol to $50" → SOL symbol, might need price (to calculate position size), needs order, no leverage update
-- "close my btc position" → BTC symbol, doesn't need price, needs order, no leverage update
-- "change eth leverage to 10x" → ETH symbol, doesn't need price, doesn't need order, needs leverage update
-- "set btc to 5x leverage and buy $100" → BTC symbol, needs price, needs order, needs leverage update
+- "buy $10 of bitcoin" → BTC symbol, needs price, order prompt: "buy $10 of BTC", no leverage update
+- "update btc to 22x leverage" → BTC symbol, doesn't need price, no order, needs leverage update to 22x
+- "sell all my eth" → ETH symbol, might need price, order prompt: "sell all ETH", no leverage update
+- "show me btc price" → BTC symbol, needs price, no order, no leverage update
+- "set stop loss on sol to $50" → SOL symbol, might need price, order prompt: "set stop loss on SOL at $50", no leverage update
+- "close my btc position" → BTC symbol, doesn't need price, order prompt: "close BTC position", no leverage update
+- "change eth leverage to 10x" → ETH symbol, doesn't need price, no order, needs leverage update to 10x
+- "set btc to 5x leverage and buy $100" → BTC symbol, needs price, order prompt: "buy $100 of BTC", needs leverage update to 5x
 
 Analyze this user input: "${inputPrompt}"
 
@@ -59,7 +59,7 @@ Return a JSON response with:
 {
   "mentionedSymbols": ["SYMBOL1", "SYMBOL2"], // symbols explicitly or implicitly mentioned
   "symbolsNeedingPrices": ["SYMBOL1"], // subset that need current price data
-  "symbolsNeedingOrders": ["SYMBOL1"], // subset that need orders to be placed
+  "symbolsNeedingOrderPrompts": { "SYMBOL1": "buy $100 of SYMBOL1", "SYMBOL2": "sell all SYMBOL2" }, // subset that need orders with specific prompts
   "symbolsNeedingLeverageUpdates": { "SYMBOL1" : 10, "SYMBOL2" : 20 }, // subset that need leverage updates, with desired leverage
   "reasoning": "brief explanation of your analysis"
 }
@@ -92,12 +92,12 @@ Return a JSON response with:
       };
     }
 
-    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrders, symbolsNeedingLeverageUpdates, reasoning } = analysis;
+    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrderPrompts, symbolsNeedingLeverageUpdates, reasoning } = analysis;
 
     console.log(`📝 Analysis Results:`, {
       mentionedSymbols,
       symbolsNeedingPrices,
-      symbolsNeedingOrders,
+      symbolsNeedingOrderPrompts,
       symbolsNeedingLeverageUpdates,
       reasoning
     });
@@ -114,15 +114,15 @@ Return a JSON response with:
       }
     }
 
-    // Create updated pendingOrders record for symbols that need orders
-    const updatedPendingOrders = { ...(state.pendingOrders || {}) };
-    let ordersAdded = 0;
+    // Create updated pendingOrderPrompts record for symbols that need orders
+    const updatedPendingOrderPrompts = { ...(state.pendingOrderPrompts || {}) };
+    let orderPromptsAdded = 0;
     
-    if (symbolsNeedingOrders && symbolsNeedingOrders.length > 0) {
-      for (const symbol of symbolsNeedingOrders) {
-        if (!updatedPendingOrders.hasOwnProperty(symbol)) {
-          updatedPendingOrders[symbol] = null as any; // OrderParams will be assembled later
-          ordersAdded++;
+    if (symbolsNeedingOrderPrompts && Object.keys(symbolsNeedingOrderPrompts).length > 0) {
+      for (const symbol of Object.keys(symbolsNeedingOrderPrompts)) {
+        if (!updatedPendingOrderPrompts.hasOwnProperty(symbol)) {
+          updatedPendingOrderPrompts[symbol] = symbolsNeedingOrderPrompts[symbol];
+          orderPromptsAdded++;
         }
       }
     }
@@ -147,13 +147,13 @@ Analysis of input: "${inputPrompt}"
 🤔 Reasoning: ${reasoning}
 
 ${pricesAdded > 0 ? `✅ Ready for price fetching for: ${symbolsNeedingPrices.join(', ')}` : 'ℹ️ No price fetching needed'}
-${ordersAdded > 0 ? `📋 Ready for order assembly for: ${symbolsNeedingOrders?.join(', ')}` : 'ℹ️ No orders needed'}
+${orderPromptsAdded > 0 ? `📋 Ready for order processing for: ${Object.keys(symbolsNeedingOrderPrompts || {}).join(', ')}` : 'ℹ️ No orders needed'}
 ${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${Object.keys(symbolsNeedingLeverageUpdates).join(', ')}` : 'ℹ️ No leverage updates needed'}
 `;
 
     return {
       currentPrices: updatedCurrentPrices,
-      pendingOrders: Object.keys(updatedPendingOrders).length > 0 ? updatedPendingOrders : undefined,
+      pendingOrderPrompts: Object.keys(updatedPendingOrderPrompts).length > 0 ? updatedPendingOrderPrompts : undefined,
       pendingLeverageUpdates: Object.keys(updatedPendingLeverageUpdates).length > 0 ? updatedPendingLeverageUpdates : undefined,
       messages: [
         ...state.messages,
@@ -184,7 +184,7 @@ ${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${Object.keys
 // Configuration for the input analysis node in LangGraph
 export const analyzeInputNodeConfig = {
   name: "analyze_input",
-  description: "Analyzes user input to determine relevant trading symbols, which need price data, orders, and leverage updates",
+  description: "Analyzes user input to determine relevant trading symbols, which need price data, order prompts, and leverage updates",
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -210,9 +210,9 @@ export const analyzeInputNodeConfig = {
         type: "object",
         description: "Updated currentPrices record with null values for symbols needing prices"
       },
-      pendingOrders: {
+      pendingOrderPrompts: {
         type: "object",
-        description: "Updated pendingOrders record with null values for symbols needing orders"
+        description: "Updated pendingOrderPrompts record with specific order prompts for symbols needing orders"
       },
       pendingLeverageUpdates: {
         type: "object",
