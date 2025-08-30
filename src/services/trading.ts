@@ -1,5 +1,5 @@
 import HyperliquidService from './hyperliquid.js';
-import { OrderParams, OrderResponse } from '@nktkas/hyperliquid';
+import { OrderParams, OrderResponse, SuccessResponse } from '@nktkas/hyperliquid';
 import { z } from 'zod';
 import MarketDataService from './marketdata.js';
 
@@ -62,7 +62,7 @@ class TradingService {
   /**
    * Update leverage for a specific asset
    */
-  static async updateLeverage(walletId: string, params: TradingLeverageParams): Promise<any> {
+  static async updateLeverage(walletId: string, params: TradingLeverageParams): Promise<SuccessResponse> {
     const hyperliquidService = new HyperliquidService();
     return await hyperliquidService.updateLeverage(walletId, params.assetId, params.leverage);
   }

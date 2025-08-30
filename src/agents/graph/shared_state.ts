@@ -1,6 +1,6 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderParams } from "@nktkas/hyperliquid";
+import { OrderParams, OrderResponse, SuccessResponse } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
 
 // Shared state definition using Annotation.Root for modern StateGraph
@@ -36,6 +36,16 @@ export const GraphState = Annotation.Root({
   // Leverage updates
   pendingLeverageUpdates: Annotation<Record<string, number> | undefined>({
     reducer: (x, y) => y ?? x,
+    default: () => undefined
+  }),
+  // Results of leverage update operations
+  leverageUpdateResults: Annotation<Record<string, SuccessResponse> | undefined>({
+    reducer: (x, y) => ({ ...x, ...y }),
+    default: () => undefined
+  }),
+  // Results of order creation operations
+  orderCreationResults: Annotation<Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }> | undefined>({
+    reducer: (x, y) => ({ ...x, ...y }),
     default: () => undefined
   }),
   // Error handling

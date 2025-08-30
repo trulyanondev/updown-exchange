@@ -1,4 +1,4 @@
-import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids } from '@nktkas/hyperliquid';
+import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
@@ -40,7 +40,7 @@ class HyperliquidService {
   /**
    * Update leverage on Hyperliquid for a specific asset
    */
-  async updateLeverage(walletId: string, assetId: number, leverage: number) {
+  async updateLeverage(walletId: string, assetId: number, leverage: number): Promise<SuccessResponse> {
     // Create PrivyAbstractWallet that implements signing with Privy
     const privyWallet = new PrivyAbstractWallet(walletId);
 
