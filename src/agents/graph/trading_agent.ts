@@ -7,6 +7,9 @@ import {
   getPerpInfoNode,
   analyzeInputNode,
   getCurrentPriceNode,
+  processLeverageUpdatesNode,
+  processOrderPromptsNode,
+  executeOrdersNode,
   GraphState
 } from "./index.js";
 
@@ -28,8 +31,11 @@ export interface AgentResponse {
  *
  * Workflow Steps:
  * 1. getPerpInfoNode - Fetch all perpetual contract metadata
- * 2. analyzeInputNode - Analyze user input to determine required symbols/prices
+ * 2. analyzeInputNode - Analyze user input to determine required symbols/prices/orders/leverage
  * 3. getCurrentPriceNode - Fetch current prices for symbols that need them
+ * 4. processLeverageUpdatesNode - Update leverage for symbols that need it
+ * 5. processOrderPromptsNode - Convert order prompts to OrderParams
+ * 6. executeOrdersNode - Execute all pending orders
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -43,14 +49,20 @@ class LangGraphTradingAgent {
       .addNode("get_perp_info", getPerpInfoNode)
       .addNode("analyze_input", analyzeInputNode)
       .addNode("get_current_price", getCurrentPriceNode)
+      .addNode("process_leverage_updates", processLeverageUpdatesNode)
+      .addNode("process_order_prompts", processOrderPromptsNode)
+      .addNode("execute_orders", executeOrdersNode)
 
       // Define the workflow edges (sequential execution)
       .addEdge(START, "get_perp_info")
       .addEdge("get_perp_info", "analyze_input")
       .addEdge("analyze_input", "get_current_price")
-      .addEdge("get_current_price", END)
+      .addEdge("get_current_price", "process_leverage_updates")
+      .addEdge("process_leverage_updates", "process_order_prompts")
+      .addEdge("process_order_prompts", "execute_orders")
+      .addEdge("execute_orders", END)
 
-    console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price');
+    console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price → process_leverage_updates → process_order_prompts → execute_orders');
   }
 
   /**
@@ -102,10 +114,12 @@ class LangGraphTradingAgent {
         message: finalMessageContent,
         actions: [{
           type: 'workflow_completed',
-          message: 'Trading analysis completed',
+          message: 'Trading workflow completed',
           finalState: result,
           currentPrices: result.currentPrices,
-          allPerpMetadata: result.allPerpMetadata
+          allPerpMetadata: result.allPerpMetadata,
+          leverageUpdateResults: result.leverageUpdateResults,
+          orderCreationResults: result.orderCreationResults
         }]
       };
 
