@@ -4,7 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import PrivyService from './services/privy.js'
 import TradingService, { TradingOrderParams, TradingLeverageParams, TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
-import TradingAgent from './agents/trading_agent.js';
+import { LangGraphTradingAgent } from './agents/graph/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -163,8 +163,8 @@ app.post('/api/prompt', authenticateUser, async (req, res) => {
       });
     }
 
-    // Create trading agent and process the prompt
-    const agent = new TradingAgent();
+    // Create LangGraph trading agent and process the prompt
+    const agent = new LangGraphTradingAgent();
     const result = await agent.processPrompt({
       prompt,
       walletId: wallet.id

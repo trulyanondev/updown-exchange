@@ -1,4 +1,4 @@
-import { ToolMessage } from "@langchain/core/messages";
+import { AIMessage } from "@langchain/core/messages";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { type GraphStateType } from "./shared_state.js";
@@ -82,10 +82,7 @@ Provide your response:`;
     return {
       messages: [
         ...state.messages,
-        new ToolMessage({
-          content,
-          tool_call_id: "summary_complete"
-        })
+        new AIMessage(content)
       ]
     };
 
@@ -106,10 +103,7 @@ Provide your response:`;
       error: errorMessage,
       messages: [
         ...state.messages,
-        new ToolMessage({
-          content: fallbackSummary,
-          tool_call_id: "summary_fallback"
-        })
+        new AIMessage(fallbackSummary)
       ]
     };
   }
