@@ -10,6 +10,7 @@ import {
   processLeverageUpdatesNode,
   processOrderPromptsNode,
   executeOrdersNode,
+  summaryNode,
   GraphState
 } from "./index.js";
 
@@ -36,6 +37,7 @@ export interface AgentResponse {
  * 4. processLeverageUpdatesNode - Update leverage for symbols that need it
  * 5. processOrderPromptsNode - Convert order prompts to OrderParams
  * 6. executeOrdersNode - Execute all pending orders
+ * 7. summaryNode - Generate contextual summary of operations performed
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -52,6 +54,7 @@ class LangGraphTradingAgent {
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("process_order_prompts", processOrderPromptsNode)
       .addNode("execute_orders", executeOrdersNode)
+      .addNode("summary", summaryNode)
 
       // Define the workflow edges (sequential execution)
       .addEdge(START, "get_perp_info")
@@ -60,9 +63,10 @@ class LangGraphTradingAgent {
       .addEdge("get_current_price", "process_leverage_updates")
       .addEdge("process_leverage_updates", "process_order_prompts")
       .addEdge("process_order_prompts", "execute_orders")
-      .addEdge("execute_orders", END)
+      .addEdge("execute_orders", "summary")
+      .addEdge("summary", END)
 
-    console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price → process_leverage_updates → process_order_prompts → execute_orders');
+    console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price → process_leverage_updates → process_order_prompts → execute_orders → summary');
   }
 
   /**

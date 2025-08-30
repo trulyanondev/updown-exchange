@@ -5,6 +5,7 @@ export { analyzeInputNode, analyzeInputNodeConfig } from './analyze_input_node.j
 export { processLeverageUpdatesNode, processLeverageUpdatesNodeConfig } from './process_leverage_updates_node.js';
 export { processOrderPromptsNode, processOrderPromptsNodeConfig } from './process_order_prompts_node.js';
 export { executeOrdersNode, executeOrdersNodeConfig } from './execute_orders_node.js';
+export { summaryNode, summaryNodeConfig } from './summary_node.js';
 export { GraphState, type GraphStateType } from './shared_state.js';
 
 // Re-export the main trading agent for convenience
