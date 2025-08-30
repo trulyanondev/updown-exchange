@@ -1,4 +1,4 @@
-import { BaseMessage, ToolMessage } from "@langchain/core/messages";
+import { ToolMessage } from "@langchain/core/messages";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { type GraphStateType } from "./shared_state.js";
@@ -33,7 +33,7 @@ You are a trading assistant analyzing user input to determine:
 1. Which trading symbols are mentioned or implied
 2. Which of those symbols need current price data for the user's request
 3. Which of those symbols need orders to be placed (buy/sell/close operations)
-4. Which of those symbols need leverage updates
+4. Which of those symbols need leverage updates and what is the desired leverage
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
@@ -60,7 +60,7 @@ Return a JSON response with:
   "mentionedSymbols": ["SYMBOL1", "SYMBOL2"], // symbols explicitly or implicitly mentioned
   "symbolsNeedingPrices": ["SYMBOL1"], // subset that need current price data
   "symbolsNeedingOrders": ["SYMBOL1"], // subset that need orders to be placed
-  "symbolsNeedingLeverage": ["SYMBOL1"], // subset that need leverage updates
+  "symbolsNeedingLeverageUpdates": { "SYMBOL1" : 10, "SYMBOL2" : 20 }, // subset that need leverage updates, with desired leverage
   "reasoning": "brief explanation of your analysis"
 }
 `;
@@ -92,13 +92,13 @@ Return a JSON response with:
       };
     }
 
-    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrders, symbolsNeedingLeverage, reasoning } = analysis;
+    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrders, symbolsNeedingLeverageUpdates, reasoning } = analysis;
 
     console.log(`📝 Analysis Results:`, {
       mentionedSymbols,
       symbolsNeedingPrices,
       symbolsNeedingOrders,
-      symbolsNeedingLeverage,
+      symbolsNeedingLeverageUpdates,
       reasoning
     });
 
@@ -131,10 +131,10 @@ Return a JSON response with:
     const updatedPendingLeverageUpdates = { ...(state.pendingLeverageUpdates || {}) };
     let leverageUpdatesAdded = 0;
     
-    if (symbolsNeedingLeverage && symbolsNeedingLeverage.length > 0) {
-      for (const symbol of symbolsNeedingLeverage) {
+    if (symbolsNeedingLeverageUpdates && Object.keys(symbolsNeedingLeverageUpdates).length > 0) {
+      for (const symbol of Object.keys(symbolsNeedingLeverageUpdates)) {
         if (!updatedPendingLeverageUpdates.hasOwnProperty(symbol)) {
-          updatedPendingLeverageUpdates[symbol] = 0; // Leverage value will be determined later
+          updatedPendingLeverageUpdates[symbol] = symbolsNeedingLeverageUpdates[symbol]; // Leverage value will be determined later
           leverageUpdatesAdded++;
         }
       }
@@ -144,14 +144,11 @@ Return a JSON response with:
 Analysis of input: "${inputPrompt}"
 
 📊 Found ${mentionedSymbols.length} mentioned symbols: ${mentionedSymbols.join(', ')}
-💰 Added ${pricesAdded} symbols needing prices: ${symbolsNeedingPrices.join(', ')}
-📝 Added ${ordersAdded} symbols needing orders: ${symbolsNeedingOrders?.join(', ') || 'None'}
-⚡ Added ${leverageUpdatesAdded} symbols needing leverage updates: ${symbolsNeedingLeverage?.join(', ') || 'None'}
 🤔 Reasoning: ${reasoning}
 
 ${pricesAdded > 0 ? `✅ Ready for price fetching for: ${symbolsNeedingPrices.join(', ')}` : 'ℹ️ No price fetching needed'}
 ${ordersAdded > 0 ? `📋 Ready for order assembly for: ${symbolsNeedingOrders?.join(', ')}` : 'ℹ️ No orders needed'}
-${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${symbolsNeedingLeverage?.join(', ')}` : 'ℹ️ No leverage updates needed'}
+${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${Object.keys(symbolsNeedingLeverageUpdates).join(', ')}` : 'ℹ️ No leverage updates needed'}
 `;
 
     return {

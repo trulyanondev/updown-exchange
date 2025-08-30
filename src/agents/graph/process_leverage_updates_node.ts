@@ -1,4 +1,4 @@
-import { BaseMessage, ToolMessage } from "@langchain/core/messages";
+import { ToolMessage } from "@langchain/core/messages";
 import { SuccessResponse } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
 import TradingService from "../../services/trading.js";
