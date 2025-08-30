@@ -1,9 +1,9 @@
 import { BaseMessage, ToolMessage } from "@langchain/core/messages";
 import MarketDataService from "../../services/marketdata.js";
-import { GraphState } from "./shared_state.js";
+import { type GraphStateType } from "./shared_state.js";
 
 // Define the node function for getting perpetual information
-export async function getPerpInfoNode(state: GraphState): Promise<Partial<GraphState>> {
+export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
     console.log(`🔍 Fetching all perpetual metadata`);
 

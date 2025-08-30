@@ -45,14 +45,5 @@ export const GraphState = Annotation.Root({
   })
 });
 
-// Legacy interface for backward compatibility
-export interface GraphStateInterface {
-  messages: BaseMessage[];
-  inputPrompt: string;
-  walletId: string;
-  allPerpMetadata?: PerpetualsUniverseDict;
-  currentPrices?: Record<string, number | undefined>;
-  pendingOrders?: Record<string, OrderParams>;
-  pendingLeverageUpdates?: Record<string, number>;
-  error?: string;
-}
+// State type for node functions - inferred from Annotation.Root
+export type GraphStateType = typeof GraphState.State;

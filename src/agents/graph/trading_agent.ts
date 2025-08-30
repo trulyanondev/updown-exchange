@@ -1,7 +1,7 @@
 // LangGraph Trading Agent - Full Implementation
 // Constructs a StateGraph workflow for trading operations
 
-import { StateGraph, START } from "@langchain/langgraph";
+import { StateGraph, START, END } from "@langchain/langgraph";
 import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import {
   getPerpInfoNode,
@@ -9,7 +9,7 @@ import {
   getCurrentPriceNode,
   GraphState
 } from "./index.js";
-import type { GraphStateInterface } from "./shared_state.js";
+import type { GraphStateType } from "./shared_state.js";
 
 export interface AgentRequest {
   prompt: string;
@@ -46,11 +46,10 @@ class LangGraphTradingAgent {
       .addNode("get_current_price", getCurrentPriceNode)
 
       // Define the workflow edges (sequential execution)
+      .addEdge(START, "get_perp_info")
       .addEdge("get_perp_info", "analyze_input")
       .addEdge("analyze_input", "get_current_price")
-
-      // Set the entry point
-      .setEntryPoint("get_perp_info");
+      .addEdge("get_current_price", END)
 
     console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price');
   }
@@ -66,7 +65,7 @@ class LangGraphTradingAgent {
       console.log('🔄 Starting LangGraph workflow for:', request.prompt);
 
       // Initialize the state with required fields
-      const initialState: GraphStateInterface = {
+      const initialState: Partial<typeof GraphState.State> = {
         messages: [new HumanMessage(request.prompt)],
         inputPrompt: request.prompt,
         walletId: request.walletId,

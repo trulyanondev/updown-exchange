@@ -1,10 +1,10 @@
 import { BaseMessage, ToolMessage } from "@langchain/core/messages";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
-import { GraphState } from "./shared_state.js";
+import { type GraphStateType } from "./shared_state.js";
 
 // Define the node function for analyzing input and determining required symbols/prices
-export async function analyzeInputNode(state: GraphState): Promise<Partial<GraphState>> {
+export async function analyzeInputNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
     const { inputPrompt, allPerpMetadata } = state;
 
