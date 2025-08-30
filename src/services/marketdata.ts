@@ -28,7 +28,7 @@ class MarketDataService {
   
   private static async getRedis() {
     if (!MarketDataService.redisClient) {
-      MarketDataService.redisClient = await createClient().connect();
+      MarketDataService.redisClient = await createClient({url: process.env.REDIS_URL!}).connect();
     }
     return MarketDataService.redisClient;
   }
@@ -112,7 +112,7 @@ class MarketDataService {
    * Checks cache first, fetches from Hyperliquid API if not available, then caches for 24 hours
    * Returns a dictionary keyed by asset name with universe data including assetId
    */
-  private static async getPerpetualsMetadata(): Promise<PerpetualsUniverseDict> {
+  static async getPerpetualsMetadata(): Promise<PerpetualsUniverseDict> {
     try {
       const redis = await MarketDataService.getRedis();
       const cachedData = await redis.get(MarketDataService.PERPETUALS_METADATA_KEY);
