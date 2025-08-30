@@ -32,6 +32,8 @@ export async function analyzeInputNode(state: GraphStateType): Promise<Partial<G
 You are a trading assistant analyzing user input to determine:
 1. Which trading symbols are mentioned or implied
 2. Which of those symbols need current price data for the user's request
+3. Which of those symbols need orders to be placed (buy/sell/close operations)
+4. Which of those symbols need leverage updates
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
@@ -42,11 +44,14 @@ Common symbol mappings:
 - And many others in the available symbols list
 
 Examples:
-- "buy $10 of bitcoin" → BTC symbol, needs price (to convert $10 to BTC amount)
-- "update btc to 22x leverage" → BTC symbol, doesn't need price (just leverage update)
-- "sell all my eth" → ETH symbol, might need price (depending on context)
-- "show me btc price" → BTC symbol, needs price
-- "set stop loss on sol to $50" → SOL symbol, might need price (to calculate position size)
+- "buy $10 of bitcoin" → BTC symbol, needs price (to convert $10 to BTC amount), needs order, no leverage update
+- "update btc to 22x leverage" → BTC symbol, doesn't need price, doesn't need order, needs leverage update
+- "sell all my eth" → ETH symbol, might need price (depending on context), needs order, no leverage update
+- "show me btc price" → BTC symbol, needs price, doesn't need order, no leverage update
+- "set stop loss on sol to $50" → SOL symbol, might need price (to calculate position size), needs order, no leverage update
+- "close my btc position" → BTC symbol, doesn't need price, needs order, no leverage update
+- "change eth leverage to 10x" → ETH symbol, doesn't need price, doesn't need order, needs leverage update
+- "set btc to 5x leverage and buy $100" → BTC symbol, needs price, needs order, needs leverage update
 
 Analyze this user input: "${inputPrompt}"
 
@@ -54,6 +59,8 @@ Return a JSON response with:
 {
   "mentionedSymbols": ["SYMBOL1", "SYMBOL2"], // symbols explicitly or implicitly mentioned
   "symbolsNeedingPrices": ["SYMBOL1"], // subset that need current price data
+  "symbolsNeedingOrders": ["SYMBOL1"], // subset that need orders to be placed
+  "symbolsNeedingLeverage": ["SYMBOL1"], // subset that need leverage updates
   "reasoning": "brief explanation of your analysis"
 }
 `;
@@ -85,11 +92,13 @@ Return a JSON response with:
       };
     }
 
-    const { mentionedSymbols, symbolsNeedingPrices, reasoning } = analysis;
+    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrders, symbolsNeedingLeverage, reasoning } = analysis;
 
     console.log(`📝 Analysis Results:`, {
       mentionedSymbols,
       symbolsNeedingPrices,
+      symbolsNeedingOrders,
+      symbolsNeedingLeverage,
       reasoning
     });
 
@@ -105,18 +114,50 @@ Return a JSON response with:
       }
     }
 
+    // Create updated pendingOrders record for symbols that need orders
+    const updatedPendingOrders = { ...(state.pendingOrders || {}) };
+    let ordersAdded = 0;
+    
+    if (symbolsNeedingOrders && symbolsNeedingOrders.length > 0) {
+      for (const symbol of symbolsNeedingOrders) {
+        if (!updatedPendingOrders.hasOwnProperty(symbol)) {
+          updatedPendingOrders[symbol] = null as any; // OrderParams will be assembled later
+          ordersAdded++;
+        }
+      }
+    }
+
+    // Create updated pendingLeverageUpdates record for symbols that need leverage updates
+    const updatedPendingLeverageUpdates = { ...(state.pendingLeverageUpdates || {}) };
+    let leverageUpdatesAdded = 0;
+    
+    if (symbolsNeedingLeverage && symbolsNeedingLeverage.length > 0) {
+      for (const symbol of symbolsNeedingLeverage) {
+        if (!updatedPendingLeverageUpdates.hasOwnProperty(symbol)) {
+          updatedPendingLeverageUpdates[symbol] = 0; // Leverage value will be determined later
+          leverageUpdatesAdded++;
+        }
+      }
+    }
+
     const content = `
 Analysis of input: "${inputPrompt}"
 
 📊 Found ${mentionedSymbols.length} mentioned symbols: ${mentionedSymbols.join(', ')}
 💰 Added ${pricesAdded} symbols needing prices: ${symbolsNeedingPrices.join(', ')}
+📝 Added ${ordersAdded} symbols needing orders: ${symbolsNeedingOrders?.join(', ') || 'None'}
+⚡ Added ${leverageUpdatesAdded} symbols needing leverage updates: ${symbolsNeedingLeverage?.join(', ') || 'None'}
 🤔 Reasoning: ${reasoning}
 
 ${pricesAdded > 0 ? `✅ Ready for price fetching for: ${symbolsNeedingPrices.join(', ')}` : 'ℹ️ No price fetching needed'}
+${ordersAdded > 0 ? `📋 Ready for order assembly for: ${symbolsNeedingOrders?.join(', ')}` : 'ℹ️ No orders needed'}
+${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${symbolsNeedingLeverage?.join(', ')}` : 'ℹ️ No leverage updates needed'}
 `;
 
     return {
       currentPrices: updatedCurrentPrices,
+      pendingOrders: Object.keys(updatedPendingOrders).length > 0 ? updatedPendingOrders : undefined,
+      pendingLeverageUpdates: Object.keys(updatedPendingLeverageUpdates).length > 0 ? updatedPendingLeverageUpdates : undefined,
       messages: [
         ...state.messages,
         new ToolMessage({
@@ -146,7 +187,7 @@ ${pricesAdded > 0 ? `✅ Ready for price fetching for: ${symbolsNeedingPrices.jo
 // Configuration for the input analysis node in LangGraph
 export const analyzeInputNodeConfig = {
   name: "analyze_input",
-  description: "Analyzes user input to determine relevant trading symbols and which need price data",
+  description: "Analyzes user input to determine relevant trading symbols, which need price data, orders, and leverage updates",
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -171,6 +212,14 @@ export const analyzeInputNodeConfig = {
       currentPrices: {
         type: "object",
         description: "Updated currentPrices record with null values for symbols needing prices"
+      },
+      pendingOrders: {
+        type: "object",
+        description: "Updated pendingOrders record with null values for symbols needing orders"
+      },
+      pendingLeverageUpdates: {
+        type: "object",
+        description: "Updated pendingLeverageUpdates record with placeholder values for symbols needing leverage updates"
       },
       error: {
         type: "string",

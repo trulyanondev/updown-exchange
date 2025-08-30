@@ -2,14 +2,13 @@
 // Constructs a StateGraph workflow for trading operations
 
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { BaseMessage, HumanMessage } from "@langchain/core/messages";
+import { HumanMessage } from "@langchain/core/messages";
 import {
   getPerpInfoNode,
   analyzeInputNode,
   getCurrentPriceNode,
   GraphState
 } from "./index.js";
-import type { GraphStateType } from "./shared_state.js";
 
 export interface AgentRequest {
   prompt: string;
@@ -126,69 +125,6 @@ class LangGraphTradingAgent {
       };
     }
   }
-
-  /**
-   * Get workflow capabilities and current implementation details
-   */
-  async getCapabilities(): Promise<string> {
-    return `
-LangGraph Trading Agent (Full Implementation)
-
-Current Status: ✅ Active and operational
-Workflow Architecture:
-1. 📊 getPerpInfoNode - Fetches all perpetual contract metadata
-2. 🧠 analyzeInputNode - Uses GPT to analyze user input and determine required symbols
-3. 💰 getCurrentPriceNode - Fetches current prices for symbols that need them
-
-Features:
-- ✅ Multi-step workflow orchestration
-- ✅ Intelligent input analysis with GPT
-- ✅ Concurrent price fetching
-- ✅ Comprehensive error handling
-- ✅ State management across all nodes
-- ✅ Tool message communication
-
-Technical Details:
-- StateGraph with custom GraphState type
-- Sequential node execution: get_perp_info → analyze_input → get_current_price
-- Concurrent price fetching for optimal performance
-- GPT-powered natural language analysis
-- Full TypeScript type safety
-
-Usage Examples:
-- "buy $10 of bitcoin" → Analyzes, determines BTC needs price, fetches price
-- "update ETH leverage to 5x" → Analyzes, determines no price needed, skips fetching
-- "show me BTC and SOL prices" → Analyzes, fetches both prices concurrently
-    `.trim();
-  }
-
-  /**
-   * Get the current workflow structure for debugging/visualization
-   */
-  getWorkflowStructure(): string {
-    return `
-Workflow Structure:
-┌─────────────────┐    ┌──────────────────┐    ┌────────────────────┐
-│ get_perp_info   │ -> │ analyze_input    │ -> │ get_current_price  │
-│ (Fetch metadata)│    │ (GPT analysis)   │    │ (Concurrent fetch) │
-└─────────────────┘    └──────────────────┘    └────────────────────┘
-    `.trim();
-  }
 }
 
 export default LangGraphTradingAgent;
-
-// Export the actual trading workflow for external use
-export const createTradingWorkflow = () => {
-  console.log('🚀 Creating full LangGraph trading workflow');
-
-  const workflow = new StateGraph(GraphState)
-    .addNode("get_perp_info", getPerpInfoNode)
-    .addNode("analyze_input", analyzeInputNode)
-    .addNode("get_current_price", getCurrentPriceNode)
-    .addEdge("get_perp_info", "analyze_input")
-    .addEdge("analyze_input", "get_current_price")
-    .setEntryPoint("get_perp_info");
-
-  return workflow.compile();
-};
