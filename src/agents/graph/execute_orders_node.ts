@@ -23,9 +23,12 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
 
     console.log(`📋 Executing ${Object.keys(pendingOrders).length} orders for wallet: ${walletId}`);
 
-    // Process all orders concurrently
-    const orderExecutionPromises = Object.entries(pendingOrders).map(async ([symbol, orderParams]) => {
+    // Process all orders concurrently with 2ms delay between starts to ensure unique nonces
+    const orderExecutionPromises = Object.entries(pendingOrders).map(async ([symbol, orderParams], index) => {
       try {
+        // Add 2ms delay between each concurrent call kickoff to ensure unique nonces
+        await new Promise(resolve => setTimeout(resolve, index * 2));
+        
         console.log(`📝 Executing order for ${symbol}:`, orderParams);
 
         // Convert OrderParams to TradingOrderParams format expected by TradingService

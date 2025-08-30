@@ -27,6 +27,8 @@ export async function analyzeInputNode(state: GraphStateType): Promise<Partial<G
     const availableSymbols = Object.keys(allPerpMetadata);
     console.log(`📊 Available symbols: ${availableSymbols.join(', ')}`);
 
+    const maxLeverageDict = Object.fromEntries(availableSymbols.map(symbol => [symbol, allPerpMetadata[symbol]?.maxLeverage]));
+
     // Create prompt for GPT to analyze the input
     const analysisPrompt = `
 You are a trading assistant analyzing user input to determine:
@@ -34,6 +36,8 @@ You are a trading assistant analyzing user input to determine:
 2. Which of those symbols need current price data for the user's request
 3. Which of those symbols need orders to be placed (with specific order prompts)
 4. Which of those symbols need leverage updates and what is the desired leverage
+    a. Do not attempt to update leverage if the user didn't ask for it
+    b. leverage should be between 1 and max leverage defined here by symbol: ${JSON.stringify(maxLeverageDict)}
 
 Available trading symbols: ${availableSymbols.join(', ')}
 

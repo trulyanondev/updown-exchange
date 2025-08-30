@@ -24,9 +24,12 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
 
     console.log(`🔧 Processing ${Object.keys(pendingLeverageUpdates).length} leverage updates for wallet: ${walletId}`);
 
-    // Process all leverage updates concurrently
-    const leverageUpdatePromises = Object.entries(pendingLeverageUpdates).map(async ([symbol, leverage]): Promise<[string, SuccessResponse | Error]> => {
+    // Process all leverage updates concurrently with 2ms delay between starts to ensure unique nonces
+    const leverageUpdatePromises = Object.entries(pendingLeverageUpdates).map(async ([symbol, leverage], index): Promise<[string, SuccessResponse | Error]> => {
       try {
+        // Add 2ms delay between each concurrent call kickoff to ensure unique nonces
+        await new Promise(resolve => setTimeout(resolve, index * 2));
+        
         console.log(`⚡ Updating leverage for ${symbol} to ${leverage}x`);
         
         // Get asset metadata to get assetId
