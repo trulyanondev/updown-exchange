@@ -67,6 +67,8 @@ Examples of good responses:
 
 DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
 
+Be brief and to the point. Only mention what was asked for.  Don't repeat any information inside your summary.
+
 Provide your response:`;
 
     // Call GPT for summary generation

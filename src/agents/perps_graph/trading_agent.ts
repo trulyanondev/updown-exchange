@@ -65,8 +65,6 @@ class LangGraphTradingAgent {
       .addEdge("process_order_prompts", "execute_orders")
       .addEdge("execute_orders", "summary")
       .addEdge("summary", END)
-
-    console.log('✅ StateGraph constructed with nodes: get_perp_info → analyze_input → get_current_price → process_leverage_updates → process_order_prompts → execute_orders → summary');
   }
 
   /**

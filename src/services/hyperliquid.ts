@@ -24,16 +24,7 @@ class HyperliquidService {
       grouping: 'na'
     };
 
-    console.log('createOrder-service', JSON.stringify(orderParams, null, 2));
-
-    try {
-      let response = await exchangeClient.order(orderParams);
-      console.log('createOrder-service', JSON.stringify(response, null, 2));
-      return response;
-    } catch (error) {
-      console.error('createOrder-service', error);
-      throw error;
-    }
+    return await exchangeClient.order(orderParams);
   }
 
   /**
