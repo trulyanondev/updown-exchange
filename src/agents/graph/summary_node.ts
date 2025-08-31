@@ -39,6 +39,9 @@ You are a helpful trading assistant providing a final summary to a user based on
 
 Original User Request: "${inputPrompt}"
 
+User's portfolio information: ${JSON.stringify(state.clearinghouseState)}
+User's open orders: ${JSON.stringify(state.openOrders)}
+
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
 ${leverageUpdatesCount > 0 ? `- Processed ${leverageUpdatesCount} leverage updates (${successfulLeverageUpdates.length} successful)` : '- No leverage updates were performed'}

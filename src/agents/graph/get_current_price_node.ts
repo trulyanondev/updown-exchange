@@ -12,7 +12,6 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
 
     if (symbolsToFetch.length === 0) {
       return {
-        error: "No symbols found in currentPrices record for price retrieval",
         messages: [
           ...state.messages,
           new ToolMessage({
@@ -53,7 +52,7 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
     results.forEach((result, index) => {
       if (result.status === 'fulfilled') {
         const { symbol, price, success } = result.value;
-        updatedCurrentPrices[symbol] = price;
+        updatedCurrentPrices[symbol.toLowerCase()] = price;
 
         if (success) {
           successfulResults.push(`${symbol}: $${price}`);
@@ -65,7 +64,7 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
         if (index < symbolsToFetch.length) {
           const symbol = symbolsToFetch[index]!;
           console.error(`💥 Promise rejected for ${symbol}:`, result.reason);
-          updatedCurrentPrices[symbol] = 0;
+          updatedCurrentPrices[symbol.toLowerCase()] = 0;
           failedResults.push(symbol);
         } else {
           console.error(`💥 Promise rejected for unknown symbol at index ${index}:`, result.reason);
