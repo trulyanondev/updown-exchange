@@ -100,7 +100,7 @@ Return a JSON response with:
     let pricesAdded = 0;
     for (const symbol of symbolsNeedingPrices) {
       if (!updatedCurrentPrices.hasOwnProperty(symbol)) {
-        updatedCurrentPrices[symbol] = undefined;
+        updatedCurrentPrices[symbol.toLowerCase()] = undefined;
         pricesAdded++;
       }
     }

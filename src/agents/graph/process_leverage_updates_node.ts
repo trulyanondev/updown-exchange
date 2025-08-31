@@ -3,6 +3,7 @@ import { SuccessResponse } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
 import TradingService from "../../services/trading.js";
 import MarketDataService from "../../services/marketdata.js";
+import HyperliquidService from "../../services/hyperliquid.js";
 
 // Define the node function for processing pending leverage updates
 export async function processLeverageUpdatesNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -24,23 +25,20 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
 
     console.log(`🔧 Processing ${Object.keys(pendingLeverageUpdates).length} leverage updates for wallet: ${walletId}`);
 
-    // Process all leverage updates concurrently with 2ms delay between starts to ensure unique nonces
-    const leverageUpdatePromises = Object.entries(pendingLeverageUpdates).map(async ([symbol, leverage], index): Promise<[string, SuccessResponse | Error]> => {
+    // Create a shared ExchangeClient for all leverage updates to ensure nonce consistency
+    const exchangeClient = HyperliquidService.exchangeClient(walletId);
+
+    // Process all leverage updates concurrently
+    const leverageUpdatePromises = Object.entries(pendingLeverageUpdates).map(async ([symbol, leverage]): Promise<[string, SuccessResponse | Error]> => {
       try {
-        // Add 2ms delay between each concurrent call kickoff to ensure unique nonces
-        await new Promise(resolve => setTimeout(resolve, index * 2));
-        
         console.log(`⚡ Updating leverage for ${symbol} to ${leverage}x`);
         
         // Get asset metadata to get assetId
         const metadata = await MarketDataService.getPerpMetadata(symbol);
         const assetId = metadata.assetId;
 
-        // Execute leverage update  
-        const result: SuccessResponse = await TradingService.updateLeverage(walletId, {
-          assetId,
-          leverage
-        });
+        // Execute leverage update using shared exchange client
+        const result: SuccessResponse = await HyperliquidService.updateLeverage(exchangeClient, assetId, leverage);
 
         console.log(`✅ Leverage update successful for ${symbol}: ${leverage}x`, result);
         

@@ -2,6 +2,8 @@ import { ToolMessage } from "@langchain/core/messages";
 import { OrderResponse } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
 import TradingService, { TradingOrderParams } from "../../services/trading.js";
+import HyperliquidService from "../../services/hyperliquid.js";
+import MarketDataService from "../../services/marketdata.js";
 
 // Define the node function for executing pending orders
 export async function executeOrdersNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -23,26 +25,16 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
 
     console.log(`📋 Executing ${Object.keys(pendingOrders).length} orders for wallet: ${walletId}`);
 
-    // Process all orders concurrently with 2ms delay between starts to ensure unique nonces
-    const orderExecutionPromises = Object.entries(pendingOrders).map(async ([symbol, orderParams], index) => {
-      try {
-        // Add 2ms delay between each concurrent call kickoff to ensure unique nonces
-        await new Promise(resolve => setTimeout(resolve, index * 2));
-        
-        console.log(`📝 Executing order for ${symbol}:`, orderParams);
+    // Create a shared ExchangeClient for all orders to ensure nonce consistency
+    const exchangeClient = HyperliquidService.exchangeClient(walletId);
 
-        // Convert OrderParams to TradingOrderParams format expected by TradingService
-        const tradingOrderParams: TradingOrderParams = {
-          assetId: orderParams.a,
-          isBuy: orderParams.b,
-          price: orderParams.p,
-          size: orderParams.s,
-          reduceOnly: orderParams.r,
-          orderType: orderParams.t
-        };
+    // Process all orders concurrently
+    const orderExecutionPromises = Object.entries(pendingOrders).map(async ([symbol, tradingOrderParams]) => {
+      try {
+        console.log(`📝 Executing order for ${symbol}:`, tradingOrderParams);
 
         // Execute order through TradingService
-        const result: OrderResponse = await TradingService.createOrder(walletId, tradingOrderParams);
+        const result: OrderResponse = await TradingService.createOrder(exchangeClient, tradingOrderParams);
 
         console.log(`✅ Order execution successful for ${symbol}:`, result);
         

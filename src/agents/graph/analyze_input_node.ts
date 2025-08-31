@@ -25,7 +25,7 @@ export async function analyzeInputNode(state: GraphStateType): Promise<Partial<G
 
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
-    console.log(`📊 Available symbols: ${availableSymbols.join(', ')}`);
+    // console.log(`📊 Available symbols: ${availableSymbols.join(', ')}`);
 
     const maxLeverageDict = Object.fromEntries(availableSymbols.map(symbol => [symbol, allPerpMetadata[symbol]?.maxLeverage]));
 
@@ -113,7 +113,7 @@ Return a JSON response with:
     let pricesAdded = 0;
     for (const symbol of symbolsNeedingPrices) {
       if (!updatedCurrentPrices.hasOwnProperty(symbol)) {
-        updatedCurrentPrices[symbol] = undefined;
+        updatedCurrentPrices[symbol.toLowerCase()] = undefined;
         pricesAdded++;
       }
     }
@@ -125,7 +125,7 @@ Return a JSON response with:
     if (symbolsNeedingOrderPrompts && Object.keys(symbolsNeedingOrderPrompts).length > 0) {
       for (const symbol of Object.keys(symbolsNeedingOrderPrompts)) {
         if (!updatedPendingOrderPrompts.hasOwnProperty(symbol)) {
-          updatedPendingOrderPrompts[symbol] = symbolsNeedingOrderPrompts[symbol];
+          updatedPendingOrderPrompts[symbol.toLowerCase()] = symbolsNeedingOrderPrompts[symbol];
           orderPromptsAdded++;
         }
       }
@@ -138,7 +138,7 @@ Return a JSON response with:
     if (symbolsNeedingLeverageUpdates && Object.keys(symbolsNeedingLeverageUpdates).length > 0) {
       for (const symbol of Object.keys(symbolsNeedingLeverageUpdates)) {
         if (!updatedPendingLeverageUpdates.hasOwnProperty(symbol)) {
-          updatedPendingLeverageUpdates[symbol] = symbolsNeedingLeverageUpdates[symbol]; // Leverage value will be determined later
+          updatedPendingLeverageUpdates[symbol.toLowerCase()] = symbolsNeedingLeverageUpdates[symbol]; // Leverage value will be determined later
           leverageUpdatesAdded++;
         }
       }

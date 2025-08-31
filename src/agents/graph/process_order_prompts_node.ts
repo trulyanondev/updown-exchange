@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { OrderParams } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
-import MarketDataService from "../../services/marketdata.js";
+import { TradingOrderParams } from "../../services/trading.js";
 
 // Define the node function for processing pending order prompts
 export async function processOrderPromptsNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -45,7 +45,7 @@ export async function processOrderPromptsNode(state: GraphStateType): Promise<Pa
     );
 
     // Process all order prompts concurrently
-    const orderPromptProcessingPromises = Object.entries(pendingOrderPrompts).map(async ([symbol, orderPrompt]): Promise<[string, OrderParams | Error]> => {
+    const orderPromptProcessingPromises = Object.entries(pendingOrderPrompts).map(async ([symbol, orderPrompt]): Promise<[string, TradingOrderParams | Error]> => {
       try {
         console.log(`📝 Processing order prompt for ${symbol}: "${orderPrompt}"`);
 
@@ -60,33 +60,33 @@ Order Prompt: "${orderPrompt}"
 Symbol: ${symbol}
 Current Price: ${currentPrice}
 
-Available Order Types:
+Available Order Types (market order is default if not specified):
+- {'limit': {'tif': 'Ioc'}} for market orders (default if not specified)
 - {'limit': {'tif': 'Ioc'}} for Immediate or Cancel limit orders
 - {'limit': {'tif': 'Gtc'}} for Good Till Canceled limit orders  
 - {'limit': {'tif': 'Alo'}} for Add Liquidity Only limit orders
-- {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}} for market orders
-- {'trigger': {'isMarket': false, 'triggerPx': '123.45', 'tpsl': 'sl'}} for stop loss orders (limit)
-- {'trigger': {'isMarket': true, 'triggerPx': '123.45', 'tpsl': 'sl'}} for stop loss orders (market)
-- {'trigger': {'isMarket': false, 'triggerPx': '123.45', 'tpsl': 'tp'}} for take profit orders (limit)
-- {'trigger': {'isMarket': true, 'triggerPx': '123.45', 'tpsl': 'tp'}} for take profit orders (market)
+- {'trigger': {'isMarket': true, 'triggerPx': '123.45', 'tpsl': 'sl'}} for stop loss orders (executes at market price once hit)
+- {'trigger': {'isMarket': true, 'triggerPx': '123.45', 'tpsl': 'tp'}} for take profit orders (executes at market price once hit)
 
 Extract the following parameters:
 1. isBuy: true for buy orders, false for sell orders
 2. price: price as string (use current price for market orders, specified price for limit/stop orders)
-3. size: order size as string (in base currency units)
-4. orderType: object matching one of the available order types above
-5. reduceOnly: true for closing positions, false for opening positions
+3. isMarketOrder: true for market orders, false for limit/stop orders
+4. size: order size as string (in base currency units)
+5. orderType: object matching one of the available order types above
+6. reduceOnly: true for closing positions, false for opening positions
 
 Examples:
-- "buy $100 of BTC" → isBuy: true, size calculated from $100/current_price, orderType: {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}}
-- "sell all ETH" → isBuy: false, size: "all" (you'll need to specify actual size), orderType: {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}}
-- "buy BTC at $65000" → isBuy: true, price: "65000", orderType: {'limit': {'tif': 'Gtc'}}
-- "set stop loss on SOL at $150" → isBuy: false, price: "150", reduceOnly: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '150', 'tpsl': 'sl'}}
+- "buy $100 of BTC" → isBuy: true, size calculated from $100/current_price, isMarketOrder: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}}
+- "buy BTC at $65000" → isBuy: true, price: "65000", isMarketOrder: false, orderType: {'limit': {'tif': 'Gtc'}}
+- "set stop loss on SOL at $150" → isBuy: false, price: "150", isMarketOrder: false, reduceOnly: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '150', 'tpsl': 'sl'}}
+- "set take profit on BTC at $110000" → isBuy: true, price: "110000", isMarketOrder: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '110000', 'tpsl': 'tp'}}
 
 Return ONLY a valid JSON object with these exact fields:
 {
   "isBuy": boolean,
   "price": "string",
+  "isMarketOrder": boolean,
   "size": "string", 
   "reduceOnly": boolean,
   "orderType": object
@@ -95,7 +95,7 @@ Return ONLY a valid JSON object with these exact fields:
 
         // Call GPT for order parameter extraction
         const { text: extractionResult } = await generateText({
-          model: openai("gpt-5-nano"),
+          model: openai("gpt-5-mini"),
           prompt: extractionPrompt,
           temperature: 0.1, // Low temperature for consistent extraction
         });
@@ -126,13 +126,14 @@ Return ONLY a valid JSON object with these exact fields:
         }
 
         // Convert to Hyperliquid OrderParams format
-        const hyperliquidOrderParams: OrderParams = {
-          a: assetId,
-          b: orderParams.isBuy,
-          p: orderParams.price,
-          s: orderParams.size,
-          r: orderParams.reduceOnly || false,
-          t: orderParams.orderType
+        const hyperliquidOrderParams: TradingOrderParams = {
+          assetId: assetId,
+          isBuy: orderParams.isBuy,
+          price: orderParams.price,
+          size: orderParams.size,
+          reduceOnly: orderParams.reduceOnly || false,
+          orderType: orderParams.orderType,
+          isMarketOrder: orderParams.isMarketOrder
         };
 
         console.log(`✅ Order parameters constructed for ${symbol}:`, hyperliquidOrderParams);
@@ -149,7 +150,7 @@ Return ONLY a valid JSON object with these exact fields:
     const orderPromptResults = await Promise.all(orderPromptProcessingPromises);
     
     // Separate successful results from errors
-    const successfulResults = orderPromptResults.filter(([_, result]) => !(result instanceof Error)) as [string, OrderParams][];
+    const successfulResults = orderPromptResults.filter(([_, result]) => !(result instanceof Error)) as [string, TradingOrderParams][];
     const failedResults = orderPromptResults.filter(([_, result]) => result instanceof Error) as [string, Error][];
     
     // Convert successful results into record for state storage

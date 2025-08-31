@@ -1,7 +1,8 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderParams, OrderResponse, SuccessResponse } from "@nktkas/hyperliquid";
+import { OrderResponse, SuccessResponse } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
+import { TradingOrderParams } from "../../services/trading.js";
 
 // Shared state definition using Annotation.Root for modern StateGraph
 export const GraphState = Annotation.Root({
@@ -34,7 +35,7 @@ export const GraphState = Annotation.Root({
     default: () => undefined
   }),
   // Trading orders (assembled parameters)
-  pendingOrders: Annotation<Record<string, OrderParams> | undefined>({
+  pendingOrders: Annotation<Record<string, TradingOrderParams> | undefined>({
     reducer: (x, y) => y ?? x,
     default: () => undefined
   }),

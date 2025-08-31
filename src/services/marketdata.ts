@@ -21,7 +21,6 @@ class MarketDataService {
   private static readonly CURRENT_PRICES_KEY = 'current_prices';
   private static readonly CURRENT_PRICES_CACHE_TTL_SECONDS = 5; // 5 seconds
   
-  private static hyperliquidService: HyperliquidService = new HyperliquidService();
   
   // Initialize Redis client lazily
   private static redisClient: any = null;
@@ -84,7 +83,7 @@ class MarketDataService {
         return JSON.parse(cachedData);
       }
 
-      const mids = await MarketDataService.hyperliquidService.getAllMids();
+      const mids = await HyperliquidService.getAllMids();
       const currentPrices = Object.fromEntries(
           Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
       );
@@ -100,7 +99,7 @@ class MarketDataService {
       console.error('Redis error in getCurrentPrices, falling back to direct API call:', error);
       
       // Fallback to direct API call if Redis fails
-      const mids = await MarketDataService.hyperliquidService.getAllMids();
+      const mids = await HyperliquidService.getAllMids();
       return Object.fromEntries(
           Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
       );
@@ -122,7 +121,7 @@ class MarketDataService {
       }
 
       // Cache miss - fetch from Hyperliquid API
-      const metadata = await MarketDataService.hyperliquidService.getPerpetualsMetadata();
+      const metadata = await HyperliquidService.getPerpetualsMetadata();
 
       // Transform universe array into dictionary keyed by name
       const universeDict: PerpetualsUniverseDict = {};
@@ -146,7 +145,7 @@ class MarketDataService {
       console.error('Redis error in getPerpetualsMetadata, falling back to direct API call:', error);
       
       // Fallback to direct API call if Redis fails
-      const metadata = await MarketDataService.hyperliquidService.getPerpetualsMetadata();
+      const metadata = await HyperliquidService.getPerpetualsMetadata();
       
       const universeDict: PerpetualsUniverseDict = {};
       metadata.universe.forEach((universe, index) => {
