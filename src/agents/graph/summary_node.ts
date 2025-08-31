@@ -1,8 +1,16 @@
 import { AIMessage } from "@langchain/core/messages";
-import { openai } from "@ai-sdk/openai";
-import { generateText } from "ai";
+import OpenAI from "openai";
+import { zodTextFormat } from "openai/helpers/zod";
+import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+
+const openai = new OpenAI();
+
+// Schema for summary output
+const SummarySchema = z.object({
+  summary: z.string()
+});
 
 // Define the node function for generating final summary
 export async function summaryNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -46,10 +54,6 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     
     // Create context-aware summary prompt
     const summaryPrompt = `
-You are a helpful trading assistant providing a final summary to a user based on their request and what actions were performed.
-
-Original User Request: "${inputPrompt}"
-
 User's current portfolio summary after all actions: ${accountInfoFromState(state).positionsSummary}
 User's open orders summary after all actions: ${accountInfoFromState(state).ordersSummary}
 User's unlevered account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
@@ -95,11 +99,19 @@ Notes:
 Provide your response:`;
 
     // Call GPT for summary generation
-    const { text: summaryResult } = await generateText({
-      model: openai("gpt-5-nano"),
-      prompt: summaryPrompt,
-      temperature: 0.1,
+    const response = await openai.responses.parse({
+      model: "gpt-5-nano",
+      input: [
+        { role: "system", content: summaryPrompt },
+        { role: "user", content: inputPrompt }
+      ],
+      text: {
+        format: zodTextFormat(SummarySchema, "summary")
+      }
     });
+
+    const analysis = response.output_parsed;
+    const summaryResult = analysis?.summary || "Unable to generate summary";
 
     console.log(`📋 Generated summary:`, summaryResult);
 
