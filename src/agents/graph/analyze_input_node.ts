@@ -33,9 +33,8 @@ export async function analyzeInputNode(state: GraphStateType): Promise<Partial<G
     const analysisPrompt = `
 You are a trading assistant analyzing user input to determine:
 1. Which trading symbols are mentioned or implied
-2. Which of those symbols need current price data for the user's request
-3. Which of those symbols need orders to be placed (with specific order prompts)
-4. Which of those symbols need leverage updates and what is the desired leverage
+2. Which of those symbols need orders to be placed (with specific order prompts)
+3. Which of those symbols need leverage updates and what is the desired leverage
     a. Do not attempt to update leverage if the user didn't ask for it
     b. leverage should be between 1 and max leverage defined here by symbol: ${JSON.stringify(maxLeverageDict)}
 
@@ -48,21 +47,22 @@ Common symbol mappings:
 - And many others in the available symbols list
 
 Examples:
-- "buy $10 of bitcoin" → BTC symbol, needs price, order prompt: "buy $10 of BTC", no leverage update
-- "update btc to 22x leverage" → BTC symbol, doesn't need price, no order, needs leverage update to 22x
-- "sell all my eth" → ETH symbol, might need price, order prompt: "sell all ETH", no leverage update
-- "show me btc price" → BTC symbol, needs price, no order, no leverage update
-- "set stop loss on sol to $50" → SOL symbol, might need price, order prompt: "set stop loss on SOL at $50", no leverage update
-- "close my btc position" → BTC symbol, doesn't need price, order prompt: "close BTC position", no leverage update
-- "change eth leverage to 10x" → ETH symbol, doesn't need price, no order, needs leverage update to 10x
-- "set btc to 5x leverage and buy $100" → BTC symbol, needs price, order prompt: "buy $100 of BTC", needs leverage update to 5x
+- "buy $10 of bitcoin" → BTC symbol, order prompt: "buy $10 of BTC", no leverage update
+- "update btc to 22x leverage" → BTC symbol, no order, needs leverage update to 22x
+- "sell all my eth" → ETH symbol, order prompt: "sell all ETH", no leverage update
+- "show me btc price" → BTC symbol, no order, no leverage update
+- "set stop loss on sol to $50" → SOL symbol, order prompt: "set stop loss on SOL at $50", no leverage update
+- "close my btc position" → BTC symbol, order prompt: "close BTC position", no leverage update
+- "change eth leverage to 10x" → ETH symbol, no order, needs leverage update to 10x
+- "set btc to 5x leverage and buy $100" → BTC symbol, order prompt: "buy $100 of BTC", needs leverage update to 5x
+
+Note: All mentioned symbols will automatically have their prices fetched.
 
 Analyze this user input: "${inputPrompt}"
 
 Return a JSON response with:
 {
   "mentionedSymbols": ["SYMBOL1", "SYMBOL2"], // symbols explicitly or implicitly mentioned
-  "symbolsNeedingPrices": ["SYMBOL1"], // subset that need current price data
   "symbolsNeedingOrderPrompts": { "SYMBOL1": "buy $100 of SYMBOL1", "SYMBOL2": "sell all SYMBOL2" }, // subset that need orders with specific prompts
   "symbolsNeedingLeverageUpdates": { "SYMBOL1" : 10, "SYMBOL2" : 20 }, // subset that need leverage updates, with desired leverage
   "reasoning": "brief explanation of your analysis"
@@ -96,11 +96,10 @@ Return a JSON response with:
       };
     }
 
-    const { mentionedSymbols, symbolsNeedingPrices, symbolsNeedingOrderPrompts, symbolsNeedingLeverageUpdates, reasoning } = analysis;
+    const { mentionedSymbols, symbolsNeedingOrderPrompts, symbolsNeedingLeverageUpdates, reasoning } = analysis;
 
     console.log(`📝 Analysis Results:`, {
       mentionedSymbols,
-      symbolsNeedingPrices,
       symbolsNeedingOrderPrompts,
       symbolsNeedingLeverageUpdates,
       reasoning
@@ -109,9 +108,9 @@ Return a JSON response with:
     // Create updated currentPrices record
     const updatedCurrentPrices = { ...(state.currentPrices || {}) };
 
-    // Add symbols that need prices with undefined values
+    // Add all mentioned symbols for price fetching
     let pricesAdded = 0;
-    for (const symbol of symbolsNeedingPrices) {
+    for (const symbol of mentionedSymbols) {
       if (!updatedCurrentPrices.hasOwnProperty(symbol)) {
         updatedCurrentPrices[symbol.toLowerCase()] = undefined;
         pricesAdded++;
@@ -150,7 +149,7 @@ Analysis of input: "${inputPrompt}"
 📊 Found ${mentionedSymbols.length} mentioned symbols: ${mentionedSymbols.join(', ')}
 🤔 Reasoning: ${reasoning}
 
-${pricesAdded > 0 ? `✅ Ready for price fetching for: ${symbolsNeedingPrices.join(', ')}` : 'ℹ️ No price fetching needed'}
+${pricesAdded > 0 ? `✅ Ready for price fetching for: ${mentionedSymbols.join(', ')}` : 'ℹ️ No price fetching needed'}
 ${orderPromptsAdded > 0 ? `📋 Ready for order processing for: ${Object.keys(symbolsNeedingOrderPrompts || {}).join(', ')}` : 'ℹ️ No orders needed'}
 ${leverageUpdatesAdded > 0 ? `🔧 Ready for leverage updates for: ${Object.keys(symbolsNeedingLeverageUpdates).join(', ')}` : 'ℹ️ No leverage updates needed'}
 `;
