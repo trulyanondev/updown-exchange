@@ -57,7 +57,8 @@ Rules for order cancellation analysis:
 1. Only identify orders for cancellation if the user explicitly requests it
 2. Match user requests to specific orders based on symbol, side, price, or order ID
 3. Handle general cancellation requests like "cancel all orders" or "cancel all btc orders"
-4. Do not cancel orders unless explicitly requested
+4. Do not cancel orders unless explicitly requests cancelation or update of an existing order.
+    a. Updates of existing orders will be cancelled. Creation of replacement orders will be handled elsewhere.
 
 Examples:
 - "cancel all orders" → {ordersToCancel: [{oid: "order1", reason: "cancel all requested"}, {oid: "order2", reason: "cancel all requested"}]}
@@ -65,6 +66,7 @@ Examples:
 - "cancel order at $50000" → {ordersToCancel: [{oid: "order_oid_at_50000", reason: "cancel order at specific price"}]}
 - "buy more bitcoin" → {ordersToCancel: []} (no cancellation requested)
 - "show my orders" → {ordersToCancel: []} (just information request)
+- "update my btc limit order to $50000" → find open limit order where reduce only is false and return cancellation of that order.
 
 Return JSON with ordersToCancel array containing oid and reason for each order to be cancelled.
 `;

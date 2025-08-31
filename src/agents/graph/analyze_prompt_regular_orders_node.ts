@@ -78,6 +78,7 @@ Rules for regular order analysis:
 2. NO take profit or stop loss orders - these are handled separately
 3. NO vague amounts - convert "sell all" to specific token quantities, "buy all" to specific USD amounts
 4. For "close position", convert to specific buy/sell orders based on current positions
+5. Any update order requests should be converted to a new limit order with the new requirements.  Existing order will be handled elsewhere.
 
 Regular Order structure:
 - symbol: trading pair symbol
@@ -92,8 +93,7 @@ Examples:
 - "set stop loss on sol at $50" → NO orders (this is TP/SL, not regular order)
 - "buy bitcoin" (without amount) → treat as a market order buy for $11 of the requested token [{symbol: "BTC", amount: {type: "usd", value: 11}, isBuy: true, price: {type: "market", value: null}}]
 - "show me btc price" → NO orders (just information request)
-
-Analyze this user input: "${inputPrompt}"
+- "update my btc limit order to $50000" → if an open order exists for BTC with reduce only false, create a new limit order with the new price.
 
 Identify and structure ONLY regular trading orders. Do not include take profit or stop loss orders.
 `;
@@ -102,8 +102,8 @@ Identify and structure ONLY regular trading orders. Do not include take profit o
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
       input: [
-        { role: "system", content: "You are a trading assistant analyzing user input for regular order requirements only." },
-        { role: "user", content: analysisPrompt }
+        { role: "system", content: analysisPrompt },
+        { role: "user", content: inputPrompt }
       ],
       text: {
         format: zodTextFormat(RegularOrdersAnalysisSchema, "regular_orders_analysis")
