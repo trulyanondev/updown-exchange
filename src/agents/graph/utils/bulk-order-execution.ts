@@ -2,10 +2,12 @@ import { OrderResponse } from "@nktkas/hyperliquid";
 import TradingService, { TradingOrderParams } from "../../../services/trading.js";
 import HyperliquidService from "../../../services/hyperliquid.js";
 
+import { ExchangeClient } from "@nktkas/hyperliquid";
+
 // Helper function for bulk order execution shared between nodes
 export async function executeBulkOrders(
   orders: TradingOrderParams[], 
-  walletId: string,
+  exchangeClient: ExchangeClient,
   orderType: string = "orders"
 ): Promise<{
   successful: number;
@@ -13,10 +15,9 @@ export async function executeBulkOrders(
   results: Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }>;
   content: string;
 }> {
-  console.log(`📋 Executing ${orders.length} ${orderType} for wallet: ${walletId}`);
+  console.log(`📋 Executing ${orders.length} ${orderType}`);
 
-  // Create a shared ExchangeClient for all orders to ensure nonce consistency
-  const exchangeClient = HyperliquidService.exchangeClient(walletId);
+  // Use the provided shared ExchangeClient to prevent nonce conflicts
 
   // Process all orders concurrently
   const orderExecutionPromises = orders.map(async (tradingOrderParams, index) => {

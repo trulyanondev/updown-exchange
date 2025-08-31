@@ -1,6 +1,6 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order, CancelSuccessResponse } from "@nktkas/hyperliquid";
+import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order, CancelSuccessResponse, ExchangeClient } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
 import { TradingOrderParams } from "../../services/trading.js";
 
@@ -15,13 +15,13 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => ""
   }),
-  walletId: Annotation<string>({
-    reducer: (x, y) => y ?? x,
-    default: () => ""
-  }),
   walletAddress: Annotation<`0x${string}`>({
     reducer: (x, y) => y ?? x,
     default: () => "0x0000000000000000000000000000000000000000" as `0x${string}`
+  }),
+  // Exchange client for all trading operations (shared to prevent nonce conflicts)
+  exchangeClient: Annotation<ExchangeClient>({
+    reducer: (x, y) => y ?? x
   }),
   // Perpetual info properties
   allPerpMetadata: Annotation<PerpetualsUniverseDict | undefined>({

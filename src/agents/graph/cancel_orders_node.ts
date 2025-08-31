@@ -8,7 +8,7 @@ import MarketDataService from "../../services/marketdata.js";
 // Define the node function for cancelling pending orders
 export async function cancelOrdersNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
-    const { pendingOrderCancellations, walletId, openOrders } = state;
+    const { pendingOrderCancellations, openOrders } = state;
 
     // Early return if no pending cancellations
     if (!pendingOrderCancellations || pendingOrderCancellations.length === 0) {
@@ -36,10 +36,10 @@ export async function cancelOrdersNode(state: GraphStateType): Promise<Partial<G
       };
     }
 
-    console.log(`❌ Cancelling ${pendingOrderCancellations.length} orders for wallet: ${walletId}`);
+    console.log(`❌ Cancelling ${pendingOrderCancellations.length} orders`);
 
-    // Create a shared ExchangeClient for all cancellations to ensure consistency
-    const exchangeClient = HyperliquidService.exchangeClient(walletId);
+    // Use the shared ExchangeClient from state to prevent nonce conflicts
+    const { exchangeClient } = state;
 
     // Create a map of order IDs to order details for quick lookup
     const orderMap = new Map(openOrders.map(order => [order.oid.toString(), order]));
@@ -166,13 +166,9 @@ export const cancelOrdersNodeConfig = {
       openOrders: {
         type: "array",
         description: "Current open orders for order lookup"
-      },
-      walletId: {
-        type: "string",
-        description: "The wallet ID to cancel orders for"
       }
     },
-    required: ["walletId"]
+    required: []
   },
   outputSchema: {
     type: "object" as const,

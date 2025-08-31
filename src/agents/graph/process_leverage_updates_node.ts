@@ -1,16 +1,15 @@
 import { ToolMessage } from "@langchain/core/messages";
 import { SuccessResponse } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
-import TradingService from "../../services/trading.js";
 import MarketDataService from "../../services/marketdata.js";
 import HyperliquidService from "../../services/hyperliquid.js";
 
 // Define the node function for processing pending leverage updates
 export async function processLeverageUpdatesNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
-    const { pendingLeverageUpdates, walletId } = state;
+    const { pendingLeverageUpdates } = state;
 
-    // Early return if no pending leverage updates or no wallet ID
+    // Early return if no pending leverage updates
     if (!pendingLeverageUpdates || Object.keys(pendingLeverageUpdates).length === 0) {
       return {
         messages: [
@@ -23,10 +22,10 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
       };
     }
 
-    console.log(`🔧 Processing ${Object.keys(pendingLeverageUpdates).length} leverage updates for wallet: ${walletId}`);
+    console.log(`🔧 Processing ${Object.keys(pendingLeverageUpdates).length} leverage updates`);
 
-    // Create a shared ExchangeClient for all leverage updates to ensure nonce consistency
-    const exchangeClient = HyperliquidService.exchangeClient(walletId);
+    // Use the shared ExchangeClient from state to prevent nonce conflicts
+    const { exchangeClient } = state;
 
     // Process all leverage updates concurrently
     const leverageUpdatePromises = Object.entries(pendingLeverageUpdates).map(async ([symbol, leverage]): Promise<[string, SuccessResponse | Error]> => {
@@ -122,13 +121,9 @@ export const processLeverageUpdatesNodeConfig = {
       pendingLeverageUpdates: {
         type: "object",
         description: "Record of symbols and their target leverage values to update"
-      },
-      walletId: {
-        type: "string",
-        description: "The wallet ID to perform leverage updates for"
       }
     },
-    required: ["walletId"]
+    required: []
   },
   outputSchema: {
     type: "object" as const,

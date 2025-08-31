@@ -5,7 +5,7 @@ import { executeBulkOrders } from "./utils/bulk-order-execution.js";
 // Define the node function for executing pending TP/SL orders
 export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
-    const { pendingTakeProfitStopLossOrders, walletId } = state;
+    const { pendingTakeProfitStopLossOrders, exchangeClient } = state;
 
     // Early return if no pending TP/SL orders
     if (!pendingTakeProfitStopLossOrders || pendingTakeProfitStopLossOrders.length === 0) {
@@ -20,8 +20,8 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
       };
     }
 
-    // Execute TP/SL orders using shared helper function
-    const execution = await executeBulkOrders(pendingTakeProfitStopLossOrders, walletId, "TP/SL orders");
+    // Execute TP/SL orders using shared helper function with shared exchange client
+    const execution = await executeBulkOrders(pendingTakeProfitStopLossOrders, exchangeClient, "TP/SL orders");
 
     return {
       tpslResults: execution.results,
@@ -62,13 +62,9 @@ export const executeTpSlOrdersNodeConfig = {
       pendingTakeProfitStopLossOrders: {
         type: "array",
         description: "Array of TradingOrderParams for TP/SL orders to execute"
-      },
-      walletId: {
-        type: "string",
-        description: "The wallet ID to execute orders for"
       }
     },
-    required: ["walletId"]
+    required: []
   },
   outputSchema: {
     type: "object" as const,

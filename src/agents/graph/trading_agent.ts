@@ -3,6 +3,7 @@
 
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
+import HyperliquidService from "../../services/hyperliquid.js";
 import {
   getPerpInfoNode,
   getCurrentPriceNode,
@@ -119,12 +120,15 @@ class LangGraphTradingAgent {
     try {
       console.log('🔄 Starting LangGraph workflow for:', request.prompt);
 
-      // Initialize the state with required fields
+      // Create shared exchange client to prevent nonce conflicts across concurrent nodes
+      const exchangeClient = HyperliquidService.exchangeClient(request.walletId);
+
+      // Initialize the state with required fields including shared exchange client
       const initialState: Partial<typeof GraphState.State> = {
         messages: [new HumanMessage(request.prompt)],
         inputPrompt: request.prompt,
-        walletId: request.walletId,
         walletAddress: request.walletAddress,
+        exchangeClient: exchangeClient,
         currentPrices: {}
       };
 

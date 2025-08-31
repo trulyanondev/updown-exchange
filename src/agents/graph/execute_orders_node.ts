@@ -5,7 +5,7 @@ import { executeBulkOrders } from "./utils/bulk-order-execution.js";
 // Define the node function for executing pending orders
 export async function executeOrdersNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
-    const { pendingOrders, walletId } = state;
+    const { pendingOrders, exchangeClient } = state;
 
     // Early return if no pending orders
     if (!pendingOrders || pendingOrders.length === 0) {
@@ -20,8 +20,8 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
       };
     }
 
-    // Execute orders using shared helper function
-    const execution = await executeBulkOrders(pendingOrders, walletId, "regular orders");
+    // Execute orders using shared helper function with shared exchange client
+    const execution = await executeBulkOrders(pendingOrders, exchangeClient, "regular orders");
 
     return {
       orderCreationResults: execution.results,
@@ -62,13 +62,9 @@ export const executeOrdersNodeConfig = {
       pendingOrders: {
         type: "array",
         description: "Array of TradingOrderParams to execute"
-      },
-      walletId: {
-        type: "string",
-        description: "The wallet ID to execute orders for"
       }
     },
-    required: ["walletId"]
+    required: []
   },
   outputSchema: {
     type: "object" as const,
