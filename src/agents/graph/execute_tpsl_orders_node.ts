@@ -23,13 +23,9 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
     // Execute TP/SL orders using shared helper function
     const execution = await executeBulkOrders(pendingTakeProfitStopLossOrders, walletId, "TP/SL orders");
 
-    // Merge with existing orderCreationResults to preserve regular order results
-    const existingResults = state.orderCreationResults || {};
-    const mergedResults = { ...existingResults, ...execution.results };
-
     return {
-      orderCreationResults: mergedResults,
-      pendingTakeProfitStopLossOrders: undefined, // Clear all pending TP/SL orders after execution attempt
+      tpslResults: execution.results,
+      pendingTakeProfitStopLossOrders: undefined,
       messages: [
         ...state.messages,
         new ToolMessage({
@@ -59,7 +55,7 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
 // Configuration for the TP/SL order execution node in LangGraph
 export const executeTpSlOrdersNodeConfig = {
   name: "execute_tpsl_orders",
-  description: "Executes all pending TP/SL orders concurrently and stores results in orderCreationResults",
+  description: "Executes all pending TP/SL orders concurrently and stores results in tpslResults",
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -77,9 +73,9 @@ export const executeTpSlOrdersNodeConfig = {
   outputSchema: {
     type: "object" as const,
     properties: {
-      orderCreationResults: {
+      tpslResults: {
         type: "object",
-        description: "Results of TP/SL order execution operations merged with existing results"
+        description: "Results of TP/SL order execution operations"
       },
       pendingTakeProfitStopLossOrders: {
         type: "undefined",

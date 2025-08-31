@@ -25,7 +25,7 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
 
     return {
       orderCreationResults: execution.results,
-      pendingOrders: undefined, // Clear all pending orders after execution attempt
+      pendingOrders: undefined,
       messages: [
         ...state.messages,
         new ToolMessage({

@@ -144,7 +144,8 @@ class LangGraphTradingAgent {
           currentPrices: result.currentPrices,
           allPerpMetadata: result.allPerpMetadata,
           leverageUpdateResults: result.leverageUpdateResults,
-          orderCreationResults: result.orderCreationResults
+          orderCreationResults: result.orderCreationResults,
+          tpslResults: result.tpslResults
         }]
       };
 

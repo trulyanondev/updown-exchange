@@ -67,6 +67,11 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => ({ ...x, ...y }),
     default: () => undefined
   }),
+  // Results of TP/SL order creation operations
+  tpslResults: Annotation<Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }> | undefined>({
+    reducer: (x, y) => ({ ...x, ...y }),
+    default: () => undefined
+  }),
   // Error handling
   error: Annotation<string | undefined>({
     reducer: (x, y) => y ?? x,

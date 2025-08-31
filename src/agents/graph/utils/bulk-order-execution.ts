@@ -28,11 +28,11 @@ export async function executeBulkOrders(
 
       console.log(`✅ ${orderType} execution successful:`, result);
       
-      return [`${orderType}_${index}`, result];
+      return [index.toString(), result];
       
     } catch (error) {
       console.error(`❌ ${orderType} execution failed:`, error);
-      return [`${orderType}_${index}`, error instanceof Error ? error : new Error(String(error))];
+      return [index.toString(), error instanceof Error ? error : new Error(String(error))];
     }
   });
 
@@ -50,7 +50,7 @@ export async function executeBulkOrders(
   console.log(`📊 ${orderType} execution summary: ${successful} successful, ${failed} failed`);
     
   const failedOrders = failedResults
-    .map(([orderKey, error]) => `❌ ${orderKey}: ${error.message}`)
+    .map(([orderKey, error]) => `❌ Order ${orderKey}: ${error.message}`)
     .join('\n');
 
   const content = `Summary: ${successful}/${successful + failed} ${orderType} executed${failed > 0 ? ` (${failed} failed)` : ' successfully'}${failed > 0 ? `\n\nFailed:\n${failedOrders}` : ''}`;

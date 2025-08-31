@@ -10,7 +10,8 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       inputPrompt, 
       currentPrices, 
       leverageUpdateResults, 
-      orderCreationResults
+      orderCreationResults,
+      tpslResults
     } = state;
 
     console.log(`📄 Generating summary for prompt: "${inputPrompt}"`);
@@ -19,19 +20,23 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     const pricesCount = currentPrices ? Object.keys(currentPrices).length : 0;
     const leverageUpdatesCount = leverageUpdateResults ? Object.keys(leverageUpdateResults).length : 0;
     const orderResultsCount = orderCreationResults ? Object.keys(orderCreationResults).length : 0;
+    const tpslResultsCount = tpslResults ? Object.keys(tpslResults).length : 0;
     
     // Extract successful and failed operations
     const successfulLeverageUpdates = leverageUpdateResults 
       ? Object.entries(leverageUpdateResults).filter(([_, result]) => result.status === "ok")
       : [];
     
-    const successfulOrders = orderCreationResults
+    const successfulRegularOrders = orderCreationResults
       ? Object.entries(orderCreationResults).filter(([_, result]) => result.success)
       : [];
     
-    const failedOrders = orderCreationResults
+    const failedRegularOrders = orderCreationResults
       ? Object.entries(orderCreationResults).filter(([_, result]) => !result.success)
       : [];
+
+    const successfulTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => result.success) : [];
+    const failedTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => !result.success) : [];
 
     // Create context-aware summary prompt
     const summaryPrompt = `
@@ -45,7 +50,8 @@ User's open orders: ${JSON.stringify(state.openOrders)}
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
 ${leverageUpdatesCount > 0 ? `- Processed ${leverageUpdatesCount} leverage updates (${successfulLeverageUpdates.length} successful)` : '- No leverage updates were performed'}
-${orderResultsCount > 0 ? `- Processed ${orderResultsCount} orders (${successfulOrders.length} successful, ${failedOrders.length} failed)` : '- No orders were processed'}
+${orderResultsCount > 0 ? `- Processed ${orderResultsCount} orders (${successfulRegularOrders.length} successful, ${failedRegularOrders.length} failed)` : '- No orders were processed'}
+${tpslResultsCount > 0 ? `- Processed ${tpslResultsCount} TP/SL orders (${successfulTpSlOrders.length} successful, ${failedTpSlOrders.length} failed)` : '- No TP/SL orders were processed'}
 
 Current Prices: ${currentPrices ? JSON.stringify(currentPrices, null, 2) : 'None fetched'}
 
