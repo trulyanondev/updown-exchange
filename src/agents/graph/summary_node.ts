@@ -11,7 +11,9 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       currentPrices, 
       leverageUpdateResults, 
       orderCreationResults,
-      tpslResults
+      tpslResults,
+      clearinghouseState,
+      openOrders
     } = state;
 
     console.log(`📄 Generating summary for prompt: "${inputPrompt}"`);
@@ -21,7 +23,7 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     const leverageUpdatesCount = leverageUpdateResults ? Object.keys(leverageUpdateResults).length : 0;
     const orderResultsCount = orderCreationResults ? Object.keys(orderCreationResults).length : 0;
     const tpslResultsCount = tpslResults ? Object.keys(tpslResults).length : 0;
-    
+
     // Extract successful and failed operations
     const successfulLeverageUpdates = leverageUpdateResults 
       ? Object.entries(leverageUpdateResults).filter(([_, result]) => result.status === "ok")
@@ -37,6 +39,31 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
 
     const successfulTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => result.success) : [];
     const failedTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => !result.success) : [];
+    
+    interface Position {
+      symbol: string;
+      size: number;
+      usdValue: number;
+      longOrShort: "long" | "short";
+    }
+    
+    const portfolioPositions: Position[] = clearinghouseState ? clearinghouseState.assetPositions.filter(p => parseFloat(p.position.szi) !== 0).map(p => (
+      { 
+        symbol: p.position.coin, 
+        size: parseFloat(p.position.szi), 
+        usdValue: parseFloat(p.position.positionValue), 
+        longOrShort: parseFloat(p.position.szi) > 0 ? "long" : "short" 
+      }
+    )) : [];
+
+    // Create summary of portfolio state to avoid deep type issues
+    const portfolioSummary = clearinghouseState ? 
+      `Active Positions: [${portfolioPositions.join(', ')}]` :
+      "No portfolio data";
+    
+    const ordersSummary = openOrders ? 
+      `Open Orders: ${openOrders.length} orders` :
+      "No open orders";
 
     // Create context-aware summary prompt
     const summaryPrompt = `
@@ -44,8 +71,8 @@ You are a helpful trading assistant providing a final summary to a user based on
 
 Original User Request: "${inputPrompt}"
 
-User's portfolio information: ${JSON.stringify(state.clearinghouseState)}
-User's open orders: ${JSON.stringify(state.openOrders)}
+User's current portfolio summary after all actions: ${portfolioSummary}
+User's open orders summary after all actions: ${ordersSummary}
 
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
@@ -85,7 +112,7 @@ Provide your response:`;
     const { text: summaryResult } = await generateText({
       model: openai("gpt-5-nano"),
       prompt: summaryPrompt,
-      temperature: 0.3, // Slightly higher for more natural language
+      temperature: 0.1,
     });
 
     console.log(`📋 Generated summary:`, summaryResult);

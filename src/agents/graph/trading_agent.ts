@@ -64,6 +64,7 @@ class LangGraphTradingAgent {
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
+      .addNode("get_final_perp_info", getPerpInfoNode)
       .addNode("summary", summaryNode)
 
       // Define the workflow edges (sequential execution)
@@ -84,7 +85,8 @@ class LangGraphTradingAgent {
       .addEdge("process_leverage_updates", "execute_orders")
 
       .addEdge("execute_orders", "execute_tpsl_orders") // TP/SL orders must be executed after regular orders
-      .addEdge("execute_tpsl_orders", "summary") 
+      .addEdge("execute_tpsl_orders", "get_final_perp_info") // fetch final account info for summary
+      .addEdge("get_perp_info", "summary")
       
       .addEdge("summary", END)
   }
