@@ -167,7 +167,8 @@ app.post('/api/prompt', authenticateUser, async (req, res) => {
     const agent = new LangGraphTradingAgent();
     const result = await agent.processPrompt({
       prompt,
-      walletId: wallet.id
+      walletId: wallet.id,
+      walletAddress: wallet.address as `0x${string}`
     });
     
     return res.status(200).json(result);
