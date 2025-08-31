@@ -40,6 +40,9 @@ You are a trading assistant analyzing user input to determine:
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
+User's portfolio information: ${JSON.stringify(state.clearinghouseState)}
+User's open orders: ${JSON.stringify(state.openOrders)}
+
 Common symbol mappings:
 - Bitcoin = BTC
 - Ethereum = ETH
@@ -55,6 +58,8 @@ Examples:
 - "close my btc position" → BTC symbol, order prompt: "close BTC position", no leverage update
 - "change eth leverage to 10x" → ETH symbol, no order, needs leverage update to 10x
 - "set btc to 5x leverage and buy $100" → BTC symbol, order prompt: "buy $100 of BTC", needs leverage update to 5x
+- "close my btc position" → BTC symbol, if user has a long BTC position totalling 0.0001, order prompt: "sell 0.0001 BTC", no leverage update
+- "sell all of my ETH " → ETH symbol, if user has a short ETH position totalling 0.1 ETH, order prompt: "buy 0.1 ETH", no leverage update
 
 Note: All mentioned symbols will automatically have their prices fetched.
 
@@ -63,7 +68,7 @@ Analyze this user input: "${inputPrompt}"
 Return a JSON response with:
 {
   "mentionedSymbols": ["SYMBOL1", "SYMBOL2"], // symbols explicitly or implicitly mentioned
-  "symbolsNeedingOrderPrompts": { "SYMBOL1": "buy $100 of SYMBOL1", "SYMBOL2": "sell all SYMBOL2" }, // subset that need orders with specific prompts
+  "symbolsNeedingOrderPrompts": { "SYMBOL1": "buy $100 of SYMBOL1", "SYMBOL2": "sell 0.1 SYMBOL2" }, // subset that need orders with specific prompts.  each order should be take profit/stop loss or an order with specfic size in USD or asset size
   "symbolsNeedingLeverageUpdates": { "SYMBOL1" : 10, "SYMBOL2" : 20 }, // subset that need leverage updates, with desired leverage
   "reasoning": "brief explanation of your analysis"
 }
