@@ -10,8 +10,7 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       inputPrompt, 
       currentPrices, 
       leverageUpdateResults, 
-      orderCreationResults,
-      allPerpMetadata 
+      orderCreationResults
     } = state;
 
     console.log(`📄 Generating summary for prompt: "${inputPrompt}"`);
@@ -65,9 +64,10 @@ Examples of good responses:
 - "Your BTC leverage has been updated to 5x. However, the buy order for $100 failed due to insufficient balance."
 - "BTC price: $67,450, ETH price: $3,420." (when user asked for prices, just answer the question)
 
-DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
-
-Be brief and to the point. Only mention what was asked for.  Don't repeat any information inside your summary.
+Notes:
+- DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
+- Be brief and to the point. Only mention what was asked for.  Don't repeat any information inside your summary.
+- If an order exists in the order results for a symbol, that means it succeeded (take profit order, stop loss order, limit order, market order, etc.)
 
 Provide your response:`;
 

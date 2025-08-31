@@ -5,6 +5,10 @@ class HyperliquidService {
   private static transport: HttpTransport = new HttpTransport();
   private static infoClient: InfoClient = new InfoClient({ transport: HyperliquidService.transport });
 
+  static get infoClientInstance(): InfoClient {
+    return HyperliquidService.infoClient;
+  }
+
   static exchangeClient(walletId: string): ExchangeClient {
     const privyWallet = new PrivyAbstractWallet(walletId);
     return new ExchangeClient({

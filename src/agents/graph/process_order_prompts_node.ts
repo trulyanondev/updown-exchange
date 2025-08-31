@@ -62,7 +62,7 @@ Symbol: ${symbol}
 Current Price: ${currentPrice}
 
 Available Order Types (market order is default if not specified):
-- IMPORTANT: If user does not mention an order type, use this one: {'limit': {'tif': 'Ioc'}} for market orders (THIS IS THE DEFAULT IF ORDER TYPE IS NOT SPECIFIED)
+- IMPORTANT: If user does not mention a specific price or order type, use this one: {'limit': {'tif': 'Ioc'}} for market orders (THIS IS THE DEFAULT IF ORDER TYPE IS NOT SPECIFIED)
 - {'limit': {'tif': 'Ioc'}} for Immediate or Cancel limit orders
 - {'limit': {'tif': 'Gtc'}} for Good Till Canceled limit orders  
 - {'limit': {'tif': 'Alo'}} for Add Liquidity Only limit orders
@@ -72,36 +72,39 @@ Available Order Types (market order is default if not specified):
 Extract the following parameters:
 1. isBuy: true for buy orders, false for sell orders
 2. price: price as string (use current price for market orders, specified price for limit/stop orders)
-3. isMarketOrder: true for market orders, false for limit/stop orders
+3. isBasicOrder: true for market orders, false for limit/stop/take profit (tp)/stop loss (sl) orders
 4. size: order size as string (in base currency units)
 5. orderType: object matching one of the available order types above
 6. reduceOnly: true for closing positions, false for opening positions
 
 Examples:
-- "buy $100 of BTC" → isBuy: true, size calculated from $100/current_price, isMarketOrder: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}}
-- "buy BTC at $65000" → isBuy: true, price: "65000", isMarketOrder: false, orderType: {'limit': {'tif': 'Gtc'}}
-- "set stop loss on SOL at $150" → isBuy: false, price: "150", isMarketOrder: false, reduceOnly: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '150', 'tpsl': 'sl'}}
-- "set take profit on BTC at $110000" → isBuy: true, price: "110000", isMarketOrder: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '110000', 'tpsl': 'tp'}}
+- "buy $100 of BTC" → isBuy: true, size calculated from $100/current_price, isBasicOrder: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '0', 'tpsl': 'tp'}}
+- "buy BTC at $65000" → isBuy: true, price: "65000", isBasicOrder: false, orderType: {'limit': {'tif': 'Gtc'}}
+- "set stop loss on SOL at $150" → isBuy: false, price: "0", isBasicOrder: false, reduceOnly: true, orderType: {'trigger': {'isMarket': true, 'triggerPx': '150', 'tpsl': 'sl'}}
+- "set take profit on BTC at $110000" → isBuy: true, price: "0", isBasicOrder: false, orderType: {'trigger': {'isMarket': true, 'triggerPx': '110000', 'tpsl': 'tp'}}
 
-Return ONLY a valid JSON object with these exact fields:
+isBasicOrder is ONLY true if the user does not mention a specific price or order type other than market order.
+
+Return ONLY a valid JSON object with these exact fields (NO backticks or any other formatting):
 {
   "isBuy": boolean,
   "price": "string",
-  "isMarketOrder": boolean,
+  "isBasicOrder": boolean,
   "size": "string", 
   "reduceOnly": boolean,
   "orderType": object
 }
 `;
-
+        const timeStart = Date.now();
         // Call GPT for order parameter extraction
         const { text: extractionResult } = await generateText({
-          model: xai("grok-code-fast-1"),
+          model: openai("gpt-4.1"),
           prompt: extractionPrompt,
           temperature: 0.1, // Low temperature for consistent extraction
         });
-
-        console.log(`🤖 GPT Extraction Result for ${symbol}:`, extractionResult);
+        const timeEnd = Date.now();
+        console.log(`🤖 LLM Extraction Result for ${symbol}:`, extractionResult);
+        console.log(`🤖 LLM Extraction Time for ${symbol}:`, timeEnd - timeStart);
 
         // Parse the JSON response
         let orderParams;
@@ -113,7 +116,7 @@ Return ONLY a valid JSON object with these exact fields:
         }
 
         // Validate required fields
-        const requiredFields = ['isBuy', 'price', 'size', 'orderType'];
+        const requiredFields = ['isBuy', 'price', 'isBasicOrder', 'size', 'orderType'];
         for (const field of requiredFields) {
           if (orderParams[field] === undefined) {
             throw new Error(`Missing required field: ${field}`);
@@ -134,7 +137,7 @@ Return ONLY a valid JSON object with these exact fields:
           size: orderParams.size,
           reduceOnly: orderParams.reduceOnly || false,
           orderType: orderParams.orderType,
-          isMarketOrder: orderParams.isMarketOrder
+          isMarketOrder: orderParams.isBasicOrder
         };
 
         console.log(`✅ Order parameters constructed for ${symbol}:`, hyperliquidOrderParams);

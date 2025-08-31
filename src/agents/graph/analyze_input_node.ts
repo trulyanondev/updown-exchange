@@ -71,7 +71,7 @@ Return a JSON response with:
 
     // Call GPT for analysis
     const { text: analysisResult } = await generateText({
-      model: openai("gpt-5-mini"),
+      model: openai("gpt-4.1"),
       prompt: analysisPrompt,
       temperature: 0.1, // Low temperature for consistent analysis
     });
