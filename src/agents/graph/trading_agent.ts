@@ -8,6 +8,7 @@ import {
   getCurrentPriceNode,
   processLeverageUpdatesNode,
   executeOrdersNode,
+  executeTpSlOrdersNode,
   summaryNode,
   analyzePromptSymbolsNode,
   analyzePromptLeverageUpdatesNode,
@@ -41,8 +42,9 @@ export interface AgentResponse {
  * 4. processLeverageUpdatesNode - Update leverage for symbols that need it
  * 5. analyzePromptRegularOrdersNode - Analyze and convert regular orders to TradingOrderParams
  * 6. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
- * 7. executeOrdersNode - Execute all pending orders
- * 8. summaryNode - Generate contextual summary of operations performed
+ * 7. executeOrdersNode - Execute all pending regular orders
+ * 8. executeTpSlOrdersNode - Execute all pending TP/SL orders after regular orders
+ * 9. summaryNode - Generate contextual summary of operations performed
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -61,6 +63,7 @@ class LangGraphTradingAgent {
       .addNode("get_current_price", getCurrentPriceNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
+      .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
       .addNode("summary", summaryNode)
 
       // Define the workflow edges (sequential execution)
@@ -69,18 +72,20 @@ class LangGraphTradingAgent {
       // Concurrently execute all analyze nodes
       .addEdge("get_perp_info", "analyze_prompt_symbols")
       .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
-      .addEdge("get_perp_info", "analyze_prompt_regular_orders")
       .addEdge("get_perp_info", "analyze_prompt_tp_sl")
 
       // get current price executes after all analyze nodes
       .addEdge("analyze_prompt_symbols", "get_current_price")
       .addEdge("analyze_prompt_leverage_updates", "get_current_price")
-      .addEdge("analyze_prompt_regular_orders", "get_current_price")
       .addEdge("analyze_prompt_tp_sl", "get_current_price")
 
       .addEdge("get_current_price", "process_leverage_updates")
+
       .addEdge("process_leverage_updates", "execute_orders")
-      .addEdge("execute_orders", "summary")
+
+      .addEdge("execute_orders", "execute_tpsl_orders") // TP/SL orders must be executed after regular orders
+      .addEdge("execute_tpsl_orders", "summary") 
+      
       .addEdge("summary", END)
   }
 
