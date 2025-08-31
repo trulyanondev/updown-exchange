@@ -1,6 +1,6 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order } from "@nktkas/hyperliquid";
+import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order, CancelSuccessResponse } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
 import { TradingOrderParams } from "../../services/trading.js";
 
@@ -55,6 +55,15 @@ export const GraphState = Annotation.Root({
   // TP/SL orders (assembled parameters)  
   pendingTakeProfitStopLossOrders: Annotation<TradingOrderParams[] | undefined>({
     reducer: (x, y) => y ?? x,
+    default: () => undefined
+  }),
+  // Order cancellations (order IDs to cancel)
+  pendingOrderCancellations: Annotation<string[] | undefined>({
+    reducer: (x, y) => y ?? x,
+    default: () => undefined
+  }),
+  orderCancellationResults: Annotation<Record<string, { success: boolean; message: string; response?: CancelSuccessResponse; error?: string }> | undefined>({
+    reducer: (x, y) => ({ ...x, ...y }),
     default: () => undefined
   }),
   // Leverage updates

@@ -1,5 +1,5 @@
 import HyperliquidService from './hyperliquid.js';
-import { OrderParams, OrderResponse, SuccessResponse, ExchangeClient } from '@nktkas/hyperliquid';
+import { OrderParams, OrderResponse, SuccessResponse, ExchangeClient, CancelSuccessResponse } from '@nktkas/hyperliquid';
 import { z } from 'zod';
 import MarketDataService from './marketdata.js';
 
@@ -43,6 +43,12 @@ class TradingService {
 
     // Create order using HyperliquidService
     return await HyperliquidService.createOrder(exchangeClient, orderParams);
+  }
+
+  static async cancelOrder(exchangeClient: ExchangeClient, assetId: number, orderId: number): Promise<CancelSuccessResponse> {
+    return await HyperliquidService.cancelOrder(
+      exchangeClient, assetId, orderId
+    );
   }
 
   /**

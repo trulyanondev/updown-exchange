@@ -9,11 +9,13 @@ import {
   processLeverageUpdatesNode,
   executeOrdersNode,
   executeTpSlOrdersNode,
+  cancelOrdersNode,
   summaryNode,
   analyzePromptSymbolsNode,
   analyzePromptLeverageUpdatesNode,
   analyzePromptRegularOrdersNode,
   analyzePromptTpSlNode,
+  analyzePromptCancelOrdersNode,
   GraphState
 } from "./index.js";
 
@@ -44,7 +46,8 @@ export interface AgentResponse {
  * 6. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
  * 7. executeOrdersNode - Execute all pending regular orders
  * 8. executeTpSlOrdersNode - Execute all pending TP/SL orders after regular orders
- * 9. summaryNode - Generate contextual summary of operations performed
+ * 9. cancelOrdersNode - Cancel all pending order cancellations
+ * 10. summaryNode - Generate contextual summary of operations performed
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -60,10 +63,12 @@ class LangGraphTradingAgent {
       .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
       .addNode("analyze_prompt_regular_orders", analyzePromptRegularOrdersNode)
       .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
+      .addNode("analyze_prompt_cancel_orders", analyzePromptCancelOrdersNode)
       .addNode("get_current_price", getCurrentPriceNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
+      .addNode("cancel_orders", cancelOrdersNode)
       .addNode("get_final_perp_info", getPerpInfoNode)
       .addNode("summary", summaryNode)
 
@@ -79,15 +84,18 @@ class LangGraphTradingAgent {
       .addEdge("get_current_price", "analyze_prompt_regular_orders")
       .addEdge("get_current_price", "analyze_prompt_tp_sl")
       .addEdge("get_current_price", "analyze_prompt_leverage_updates")
+      .addEdge("get_current_price", "analyze_prompt_cancel_orders")
       
       .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
       .addEdge("analyze_prompt_regular_orders", "process_leverage_updates")
       .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
+      .addEdge("analyze_prompt_cancel_orders", "process_leverage_updates")
 
       .addEdge("process_leverage_updates", "execute_orders")
 
       .addEdge("execute_orders", "execute_tpsl_orders") // TP/SL orders must be executed after regular orders
-      .addEdge("execute_tpsl_orders", "get_final_perp_info") // fetch final account info for summary // TODO: use conditional edge if any actions were performed
+      .addEdge("execute_tpsl_orders", "cancel_orders") // Cancel orders after all order executions
+      .addEdge("cancel_orders", "get_final_perp_info") // fetch final account info for summary // TODO: use conditional edge if any actions were performed
       .addEdge("get_final_perp_info", "summary")
       
       .addEdge("summary", END)
@@ -149,7 +157,8 @@ class LangGraphTradingAgent {
           allPerpMetadata: result.allPerpMetadata,
           leverageUpdateResults: result.leverageUpdateResults,
           orderCreationResults: result.orderCreationResults,
-          tpslResults: result.tpslResults
+          tpslResults: result.tpslResults,
+          orderCancellationResults: result.orderCancellationResults
         }]
       };
 

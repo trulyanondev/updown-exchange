@@ -1,4 +1,4 @@
-import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse } from '@nktkas/hyperliquid';
+import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse, CancelSuccessResponse } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
@@ -29,6 +29,10 @@ class HyperliquidService {
     };
 
     return await exchangeClient.order(orderParams);
+  }
+
+  static async cancelOrder(exchangeClient: ExchangeClient, assetId: number, oid: number): Promise<CancelSuccessResponse> {
+    return await exchangeClient.cancel({ cancels: [{ a: assetId, o: oid }] });
   }
 
   /**
