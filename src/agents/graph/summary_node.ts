@@ -14,7 +14,8 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       orderCreationResults,
       tpslResults,
       clearinghouseState,
-      openOrders
+      openOrders,
+      orderCancellationResults
     } = state;
 
     console.log(`📄 Generating summary for prompt: "${inputPrompt}"`);
@@ -24,7 +25,7 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     const leverageUpdatesCount = leverageUpdateResults ? Object.keys(leverageUpdateResults).length : 0;
     const orderResultsCount = orderCreationResults ? Object.keys(orderCreationResults).length : 0;
     const tpslResultsCount = tpslResults ? Object.keys(tpslResults).length : 0;
-
+    const orderCancellationResultsCount = orderCancellationResults ? Object.keys(orderCancellationResults).length : 0;
     // Extract successful and failed operations
     const successfulLeverageUpdates = leverageUpdateResults 
       ? Object.entries(leverageUpdateResults).filter(([_, result]) => result.status === "ok")
@@ -41,6 +42,9 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     const successfulTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => result.success) : [];
     const failedTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => !result.success) : [];
     
+    const successfulOrderCancellations = orderCancellationResults ? Object.entries(orderCancellationResults).filter(([_, result]) => result.success) : [];
+    const failedOrderCancellations = orderCancellationResults ? Object.entries(orderCancellationResults).filter(([_, result]) => !result.success) : [];
+    
     // Create context-aware summary prompt
     const summaryPrompt = `
 You are a helpful trading assistant providing a final summary to a user based on their request and what actions were performed.
@@ -56,12 +60,17 @@ ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Obje
 ${leverageUpdatesCount > 0 ? `- Processed ${leverageUpdatesCount} leverage updates (${successfulLeverageUpdates.length} successful)` : '- No leverage updates were performed'}
 ${orderResultsCount > 0 ? `- Processed ${orderResultsCount} orders (${successfulRegularOrders.length} successful, ${failedRegularOrders.length} failed)` : '- No orders were processed'}
 ${tpslResultsCount > 0 ? `- Processed ${tpslResultsCount} TP/SL orders (${successfulTpSlOrders.length} successful, ${failedTpSlOrders.length} failed)` : '- No TP/SL orders were processed'}
+${orderCancellationResultsCount > 0 ? `- Processed ${orderCancellationResultsCount} order cancellations (${successfulOrderCancellations.length} successful, ${failedOrderCancellations.length} failed)` : '- No order cancellations were performed'}
 
 Current Prices: ${currentPrices ? JSON.stringify(currentPrices, null, 2) : 'None fetched'}
 
 Leverage Update Results: ${leverageUpdateResults ? JSON.stringify(leverageUpdateResults, null, 2) : 'None performed'}
 
 Order Results: ${orderCreationResults ? JSON.stringify(orderCreationResults, null, 2) : 'None processed'}
+
+Cancel Order Results: ${orderCancellationResults ? JSON.stringify(orderCancellationResults, null, 2) : 'None performed'}
+
+Take Profit/Stop Loss Results: ${tpslResults ? JSON.stringify(tpslResults, null, 2) : 'None performed'}
 
 Your task is to:
 1. If the user asked a question (like "what's the BTC price?"), answer it directly using the data gathered
