@@ -78,24 +78,32 @@ class LangGraphTradingAgent {
       // Concurrently execute all analyze nodes
       .addEdge("get_perp_info", "analyze_prompt_symbols")
 
-      // get current price executes after all analyze nodes
+      // get current prices on symbols identified in analyze_prompt_symbols
       .addEdge("analyze_prompt_symbols", "get_current_price")
 
+      // analyze user input concurrently for regular orders, TP/SL orders, leverage updates, and order cancellations
       .addEdge("get_current_price", "analyze_prompt_regular_orders")
       .addEdge("get_current_price", "analyze_prompt_tp_sl")
       .addEdge("get_current_price", "analyze_prompt_leverage_updates")
       .addEdge("get_current_price", "analyze_prompt_cancel_orders")
-      
+
+      // process leverage updates, regular orders, TP/SL orders, and order cancellations
       .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
       .addEdge("analyze_prompt_regular_orders", "process_leverage_updates")
       .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
       .addEdge("analyze_prompt_cancel_orders", "process_leverage_updates")
 
+      // execute regular orders, TP/SL orders, and cancel orders concurrently
       .addEdge("process_leverage_updates", "execute_orders")
+      .addEdge("process_leverage_updates", "execute_tpsl_orders")
+      .addEdge("process_leverage_updates", "cancel_orders")
 
-      .addEdge("execute_orders", "execute_tpsl_orders") // TP/SL orders must be executed after regular orders
-      .addEdge("execute_tpsl_orders", "cancel_orders") // Cancel orders after all order executions
-      .addEdge("cancel_orders", "get_final_perp_info") // fetch final account info for summary // TODO: use conditional edge if any actions were performed
+      // fetch final account info after all actions are performed
+      .addEdge("execute_orders", "get_final_perp_info")
+      .addEdge("execute_tpsl_orders", "get_final_perp_info")
+      .addEdge("cancel_orders", "get_final_perp_info")
+
+      // generate answer and summary of results after all actions are performed
       .addEdge("get_final_perp_info", "summary")
       
       .addEdge("summary", END)
