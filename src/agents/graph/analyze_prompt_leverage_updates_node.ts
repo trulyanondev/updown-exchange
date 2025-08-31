@@ -6,9 +6,15 @@ import { type GraphStateType } from "./shared_state.js";
 
 const openai = new OpenAI();
 
+// Schema for leverage update item
+const LeverageUpdateSchema = z.object({
+  symbol: z.string(),
+  leverage: z.number()
+});
+
 // Schema for leverage analysis output
 const LeverageAnalysisSchema = z.object({
-  symbolsNeedingLeverageUpdates: z.record(z.number()),
+  leverageUpdates: z.array(LeverageUpdateSchema),
   reasoning: z.string()
 });
 
@@ -57,19 +63,20 @@ User's current portfolio summary: ${portfolioSummary}
 Rules:
 1. Only identify leverage updates if the user explicitly requests them
 2. Leverage should be between 1 and the max leverage for each symbol
-3. Do not infer leverage changes from general trading requests
+3. Leverage value should be a whole number integer
+4. Do not infer leverage changes from general trading requests
 
 Examples:
-- "update btc to 22x leverage" → BTC needs leverage update to 22x
-- "change eth leverage to 10x" → ETH needs leverage update to 10x  
-- "set btc to 5x leverage and buy $100" → BTC needs leverage update to 5x
-- "buy bitcoin" → NO leverage update needed
-- "sell eth" → NO leverage update needed
-- "close my position" → NO leverage update needed
+- "update btc to 22x leverage" → {leverageUpdates: [{symbol: "BTC", leverage: 22}]}
+- "change eth leverage to 10x" → {leverageUpdates: [{symbol: "ETH", leverage: 10}]}
+- "set btc to 5x leverage and buy $100" → {leverageUpdates: [{symbol: "BTC", leverage: 5}]}
+- "buy bitcoin" → {leverageUpdates: []} (no leverage update needed)
+- "sell eth" → {leverageUpdates: []} (no leverage update needed)
+- "close my position" → {leverageUpdates: []} (no leverage update needed)
 
 Analyze this user input: "${inputPrompt}"
 
-Identify ONLY symbols where leverage updates are explicitly requested.
+Return JSON with leverageUpdates array containing symbol and leverage pairs for explicitly requested leverage changes.
 `;
 
     // Call OpenAI with structured output
@@ -89,9 +96,9 @@ Identify ONLY symbols where leverage updates are explicitly requested.
     console.log(`🔧 Leverage Analysis:`, analysis);
 
     // Handle potentially empty or undefined analysis results
-    const symbolsNeedingLeverageUpdates = analysis?.symbolsNeedingLeverageUpdates || {};
-    const leverageCount = Object.keys(symbolsNeedingLeverageUpdates).length;
-    const leverageList = Object.entries(symbolsNeedingLeverageUpdates).map(([sym, lev]) => `${sym}:${lev}x`).join(', ');
+    const leverageUpdates = analysis?.leverageUpdates || [];
+    const leverageCount = leverageUpdates.length;
+    const leverageList = leverageUpdates.map(update => `${update.symbol}:${update.leverage}x`).join(', ');
 
     const content = `
 Leverage Analysis: "${inputPrompt}"
@@ -105,7 +112,8 @@ Leverage Analysis: "${inputPrompt}"
       const updatedPendingLeverageUpdates = { ...(state.pendingLeverageUpdates || {}) };
       let leverageUpdatesAdded = 0;
 
-      for (const [symbol, leverage] of Object.entries(symbolsNeedingLeverageUpdates)) {
+      for (const update of leverageUpdates) {
+        const { symbol, leverage } = update;
         if (!updatedPendingLeverageUpdates.hasOwnProperty(symbol.toLowerCase())) {
           updatedPendingLeverageUpdates[symbol.toLowerCase()] = leverage;
           leverageUpdatesAdded++;

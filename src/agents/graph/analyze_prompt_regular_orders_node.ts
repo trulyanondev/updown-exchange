@@ -16,7 +16,7 @@ const OrderAmountSchema = z.object({
 
 const OrderPriceSchema = z.object({
   type: z.enum(['limit', 'market']),
-  value: z.number().optional() // undefined for market orders
+  value: z.number().nullable() // null for market orders
 });
 
 const RegularOrderSchema = z.object({
@@ -107,14 +107,14 @@ Regular Order structure:
 - symbol: trading pair symbol
 - amount: {type: "usd" | "token_quantity", value: number}
 - isBuy: true for buy orders, false for sell orders
-- price: {type: "market" | "limit", value: number | undefined (only for limit orders)}
+- price: {type: "market" | "limit", value: number | null (null for market orders)}
 
 Examples:
-- "buy $100 of bitcoin" → orders: [{symbol: "BTC", amount: {type: "usd", value: 100}, isBuy: true, price: {type: "market"}}]
+- "buy $100 of bitcoin" → orders: [{symbol: "BTC", amount: {type: "usd", value: 100}, isBuy: true, price: {type: "market", value: null}}]
 - "sell 0.1 eth at $2000" → orders: [{symbol: "ETH", amount: {type: "token_quantity", value: 0.1}, isBuy: false, price: {type: "limit", value: 2000}}]
-- "close my btc position" (if user has 0.0001 BTC long) → orders: [{symbol: "BTC", amount: {type: "token_quantity", value: 0.0001}, isBuy: false, price: {type: "market"}}]
+- "close my btc position" (if user has 0.0001 BTC long) → orders: [{symbol: "BTC", amount: {type: "token_quantity", value: 0.0001}, isBuy: false, price: {type: "market", value: null}}]
 - "set stop loss on sol at $50" → NO orders (this is TP/SL, not regular order)
-- "buy bitcoin" (without amount) → treat as a market order buy for $11 of the requested token [{symbol: "BTC", amount: {type: "usd", value: 11}, isBuy: true, price: {type: "market"}}]
+- "buy bitcoin" (without amount) → treat as a market order buy for $11 of the requested token [{symbol: "BTC", amount: {type: "usd", value: 11}, isBuy: true, price: {type: "market", value: null}}]
 - "show me btc price" → NO orders (just information request)
 
 Analyze this user input: "${inputPrompt}"
@@ -136,7 +136,7 @@ Identify and structure ONLY regular trading orders. Do not include take profit o
 
     const analysis = response.output_parsed;
 
-    console.log(`📋 Regular Orders Analysis:`, analysis);
+    console.log(`📋 Regular Orders Analysis:`, JSON.stringify(analysis, null, 2));
 
     // Handle potentially empty or undefined analysis results
     const orders = analysis?.orders || [];
@@ -167,12 +167,12 @@ Regular Orders Analysis: "${inputPrompt}"
           continue;
         }
 
-        const buffer = 0.01;
+        const buffer = 0.02;
         const marketPrice = (currentPrice || 0);
-        const adjustedMarketPrice = marketPrice * (order.isBuy ? 1 + buffer : 1 - buffer);
+        const adjustedMarketPrice = marketPrice * (order.isBuy ? (1 + buffer) : (1 - buffer));
 
-        const nominalFinalPrice = order.price.value || marketPrice;
-        const adjustedFinalPrice = order.price.value || adjustedMarketPrice;
+        const nominalFinalPrice = isMarketOrder ? marketPrice : (order.price.value ?? marketPrice);
+        const adjustedFinalPrice = isMarketOrder ? adjustedMarketPrice : (order.price.value ?? adjustedMarketPrice);
 
         if (nominalFinalPrice !== 0) {
           const size = order.amount.type === "usd" ? (order.amount.value / nominalFinalPrice).toString() : order.amount.value.toString();

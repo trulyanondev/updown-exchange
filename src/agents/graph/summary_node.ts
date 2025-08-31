@@ -73,6 +73,7 @@ Original User Request: "${inputPrompt}"
 
 User's current portfolio summary after all actions: ${portfolioSummary}
 User's open orders summary after all actions: ${ordersSummary}
+User's overall account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
 
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
@@ -101,10 +102,11 @@ Examples of good responses:
 - "BTC price: $67,450, ETH price: $3,420." (when user asked for prices, just answer the question)
 
 Notes:
-- DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
+- DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates or account value, do not mention them.
 - Be brief and to the point. Only mention what was asked for.  Don't repeat any information inside your summary.
 - If an order exists in the order results for a symbol, that means it succeeded (take profit order, stop loss order, limit order, market order, etc.)
 - If any order quantity is requested in a US dollar amount and it is less than $10, mention that it is below the minimum order size and may not execute.
+- Do not offer to complete any follow up actions. Just summarize the results.
 
 Provide your response:`;
 

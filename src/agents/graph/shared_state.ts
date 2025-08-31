@@ -28,6 +28,11 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => undefined
   }),
+  // All mentioned symbols
+  mentionedSymbols: Annotation<string[] | undefined>({
+    reducer: (x, y) => y ?? x,
+    default: () => undefined
+  }),
   // Current price properties
   currentPrices: Annotation<Record<string, number | undefined>>({
     reducer: (x, y) => ({ ...x, ...y }),

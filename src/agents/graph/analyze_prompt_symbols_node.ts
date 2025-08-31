@@ -14,6 +14,7 @@ const SymbolsAnalysisSchema = z.object({
 
 // Define the node function for analyzing symbols mentioned in user input
 export async function analyzePromptSymbolsNode(state: GraphStateType): Promise<{
+  mentionedSymbols?: string[];
   currentPrices?: Record<string, number | undefined>;
   messages?: any[];
   error?: string;
@@ -65,7 +66,7 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
-      model: "gpt-4o-2024-08-06",
+      model: "gpt-5-nano",
       input: [
         { role: "system", content: "You are a trading assistant analyzing user input to identify trading symbols." },
         { role: "user", content: analysisPrompt }
@@ -104,6 +105,7 @@ Symbols Analysis: "${inputPrompt}"
       }
 
       return {
+        mentionedSymbols: mentionedSymbols,
         currentPrices: updatedCurrentPrices,
         messages: [
           ...state.messages,

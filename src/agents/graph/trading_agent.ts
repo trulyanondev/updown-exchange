@@ -72,21 +72,23 @@ class LangGraphTradingAgent {
 
       // Concurrently execute all analyze nodes
       .addEdge("get_perp_info", "analyze_prompt_symbols")
-      .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
-      .addEdge("get_perp_info", "analyze_prompt_tp_sl")
 
       // get current price executes after all analyze nodes
       .addEdge("analyze_prompt_symbols", "get_current_price")
-      .addEdge("analyze_prompt_leverage_updates", "get_current_price")
-      .addEdge("analyze_prompt_tp_sl", "get_current_price")
 
-      .addEdge("get_current_price", "process_leverage_updates")
+      .addEdge("get_current_price", "analyze_prompt_regular_orders")
+      .addEdge("get_current_price", "analyze_prompt_tp_sl")
+      .addEdge("get_current_price", "analyze_prompt_leverage_updates")
+      
+      .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
+      .addEdge("analyze_prompt_regular_orders", "process_leverage_updates")
+      .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
 
       .addEdge("process_leverage_updates", "execute_orders")
 
       .addEdge("execute_orders", "execute_tpsl_orders") // TP/SL orders must be executed after regular orders
-      .addEdge("execute_tpsl_orders", "get_final_perp_info") // fetch final account info for summary
-      .addEdge("get_perp_info", "summary")
+      .addEdge("execute_tpsl_orders", "get_final_perp_info") // fetch final account info for summary // TODO: use conditional edge if any actions were performed
+      .addEdge("get_final_perp_info", "summary")
       
       .addEdge("summary", END)
   }
