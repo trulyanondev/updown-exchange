@@ -65,6 +65,8 @@ Examples of good responses:
 - "Your BTC leverage has been updated to 5x. However, the buy order for $100 failed due to insufficient balance."
 - "BTC price: $67,450, ETH price: $3,420." (when user asked for prices, just answer the question)
 
+DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
+
 Provide your response:`;
 
     // Call GPT for summary generation

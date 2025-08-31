@@ -61,7 +61,7 @@ Symbol: ${symbol}
 Current Price: ${currentPrice}
 
 Available Order Types (market order is default if not specified):
-- {'limit': {'tif': 'Ioc'}} for market orders (default if not specified)
+- IMPORTANT: If user does not mention an order type, use this one: {'limit': {'tif': 'Ioc'}} for market orders (THIS IS THE DEFAULT IF ORDER TYPE IS NOT SPECIFIED)
 - {'limit': {'tif': 'Ioc'}} for Immediate or Cancel limit orders
 - {'limit': {'tif': 'Gtc'}} for Good Till Canceled limit orders  
 - {'limit': {'tif': 'Alo'}} for Add Liquidity Only limit orders
