@@ -5,7 +5,6 @@ import { StateGraph, START, END } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
 import {
   getPerpInfoNode,
-  analyzeInputNode,
   getCurrentPriceNode,
   processLeverageUpdatesNode,
   processOrderPromptsNode,
@@ -13,6 +12,9 @@ import {
   summaryNode,
   GraphState
 } from "./index.js";
+import { analyzePromptLeverageUpdatesNode } from "./analyze_prompt_leverage_updates_node.js";
+import { analyzePromptForOrdersNode } from "./analyze_prompt_for_orders_node.js";
+import { analyzePromptSymbolsNode } from "./analyze_prompt_symbols_node.js";
 
 export interface AgentRequest {
   prompt: string;
@@ -50,7 +52,9 @@ class LangGraphTradingAgent {
     this.workflow = new StateGraph(GraphState)
       // Add nodes to the graph
       .addNode("get_perp_info", getPerpInfoNode)
-      .addNode("analyze_input", analyzeInputNode)
+      .addNode("analyze_prompt_symbols", analyzePromptSymbolsNode)
+      .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
+      .addNode("analyze_prompt_for_orders", analyzePromptForOrdersNode)
       .addNode("get_current_price", getCurrentPriceNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("process_order_prompts", processOrderPromptsNode)
@@ -59,8 +63,17 @@ class LangGraphTradingAgent {
 
       // Define the workflow edges (sequential execution)
       .addEdge(START, "get_perp_info")
-      .addEdge("get_perp_info", "analyze_input")
-      .addEdge("analyze_input", "get_current_price")
+
+      // Concurrently execute all analyze nodes
+      .addEdge("get_perp_info", "analyze_prompt_symbols")
+      .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
+      .addEdge("get_perp_info", "analyze_prompt_for_orders")
+
+      // get current price executes after all analyze nodes
+      .addEdge("analyze_prompt_symbols", "get_current_price")
+      .addEdge("analyze_prompt_leverage_updates", "get_current_price")
+      .addEdge("analyze_prompt_for_orders", "get_current_price")
+
       .addEdge("get_current_price", "process_leverage_updates")
       .addEdge("process_leverage_updates", "process_order_prompts")
       .addEdge("process_order_prompts", "execute_orders")

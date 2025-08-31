@@ -42,27 +42,27 @@ class TradingService {
       console.log(`🔹 Market order price with buffer: ${price}`);
     }
 
-    const minOrderSize = 10; // $10 is the minimum order size for Hyperliquid
-    const minSizeIncrement = (0.1)**szDecimals;
+    // const minOrderSize = 10; // $10 is the minimum order size for Hyperliquid
+    // const minSizeIncrement = (0.1)**szDecimals;
 
-    if ((price * size) < minOrderSize) {
-        const newSize = minOrderSize / price;
-        if (Math.abs(newSize - size) < minSizeIncrement) {
-          size = newSize + minSizeIncrement;
-        } else {
-          size = newSize;
-        }
-        console.log(`🔹 Min order size: ${minOrderSize}, adjusted size: ${size}`);
-    }
+    // if ((price * size) < minOrderSize) {
+    //     const newSize = minOrderSize / price;
+    //     if (Math.abs(newSize - size) < minSizeIncrement) {
+    //       size = newSize + minSizeIncrement;
+    //     } else {
+    //       size = newSize;
+    //     }
+    //     console.log(`🔹 Min order size: ${minOrderSize}, adjusted size: ${size}`);
+    // }
 
     // Format to expected Hyperliquid precision -- one last check in case rounding errors set this off
     const finalPrice = Number(Number(price.toPrecision(5)).toFixed(maxPriceDecimals));
     let finalSize = Number(Number(size.toPrecision(5)).toFixed(szDecimals));
 
-    if ((finalPrice * finalSize) < minOrderSize) {
-      finalSize += minSizeIncrement;
-      console.log(`🔹 Adjusted final size: ${finalSize}`);
-    }
+    // if ((finalPrice * finalSize) < minOrderSize) {
+    //   finalSize += minSizeIncrement;
+    //   console.log(`🔹 Adjusted final size: ${finalSize}`);
+    // }
 
     // Map to Hyperliquid format
     const orderParams: OrderParams = {
