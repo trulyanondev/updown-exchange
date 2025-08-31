@@ -1,5 +1,6 @@
 import { ToolMessage } from "@langchain/core/messages";
 import { openai } from "@ai-sdk/openai";
+import { xai } from "@ai-sdk/xai";
 import { generateText } from "ai";
 import { OrderParams } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
@@ -95,7 +96,7 @@ Return ONLY a valid JSON object with these exact fields:
 
         // Call GPT for order parameter extraction
         const { text: extractionResult } = await generateText({
-          model: openai("gpt-5-mini"),
+          model: xai("grok-code-fast-1"),
           prompt: extractionPrompt,
           temperature: 0.1, // Low temperature for consistent extraction
         });
