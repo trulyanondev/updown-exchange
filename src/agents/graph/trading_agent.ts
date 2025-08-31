@@ -7,14 +7,14 @@ import {
   getPerpInfoNode,
   getCurrentPriceNode,
   processLeverageUpdatesNode,
-  processOrderPromptsNode,
   executeOrdersNode,
   summaryNode,
+  analyzePromptSymbolsNode,
+  analyzePromptLeverageUpdatesNode,
+  analyzePromptRegularOrdersNode,
+  analyzePromptTpSlNode,
   GraphState
 } from "./index.js";
-import { analyzePromptLeverageUpdatesNode } from "./analyze_prompt_leverage_updates_node.js";
-import { analyzePromptForOrdersNode } from "./analyze_prompt_for_orders_node.js";
-import { analyzePromptSymbolsNode } from "./analyze_prompt_symbols_node.js";
 
 export interface AgentRequest {
   prompt: string;
@@ -35,12 +35,14 @@ export interface AgentResponse {
  *
  * Workflow Steps:
  * 1. getPerpInfoNode - Fetch all perpetual contract metadata
- * 2. analyzeInputNode - Analyze user input to determine required symbols/prices/orders/leverage
+ * 2a. analyzePromptSymbolsNode - Analyze user input to identify symbols
+ * 2b. analyzePromptLeverageUpdatesNode - Analyze user input for leverage updates
  * 3. getCurrentPriceNode - Fetch current prices for symbols that need them
  * 4. processLeverageUpdatesNode - Update leverage for symbols that need it
- * 5. processOrderPromptsNode - Convert order prompts to OrderParams
- * 6. executeOrdersNode - Execute all pending orders
- * 7. summaryNode - Generate contextual summary of operations performed
+ * 5. analyzePromptRegularOrdersNode - Analyze and convert regular orders to TradingOrderParams
+ * 6. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
+ * 7. executeOrdersNode - Execute all pending orders
+ * 8. summaryNode - Generate contextual summary of operations performed
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -54,10 +56,10 @@ class LangGraphTradingAgent {
       .addNode("get_perp_info", getPerpInfoNode)
       .addNode("analyze_prompt_symbols", analyzePromptSymbolsNode)
       .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
-      .addNode("analyze_prompt_for_orders", analyzePromptForOrdersNode)
+      .addNode("analyze_prompt_regular_orders", analyzePromptRegularOrdersNode)
+      .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
       .addNode("get_current_price", getCurrentPriceNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
-      .addNode("process_order_prompts", processOrderPromptsNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("summary", summaryNode)
 
@@ -67,16 +69,17 @@ class LangGraphTradingAgent {
       // Concurrently execute all analyze nodes
       .addEdge("get_perp_info", "analyze_prompt_symbols")
       .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
-      .addEdge("get_perp_info", "analyze_prompt_for_orders")
+      .addEdge("get_perp_info", "analyze_prompt_regular_orders")
+      .addEdge("get_perp_info", "analyze_prompt_tp_sl")
 
       // get current price executes after all analyze nodes
       .addEdge("analyze_prompt_symbols", "get_current_price")
       .addEdge("analyze_prompt_leverage_updates", "get_current_price")
-      .addEdge("analyze_prompt_for_orders", "get_current_price")
+      .addEdge("analyze_prompt_regular_orders", "get_current_price")
+      .addEdge("analyze_prompt_tp_sl", "get_current_price")
 
       .addEdge("get_current_price", "process_leverage_updates")
-      .addEdge("process_leverage_updates", "process_order_prompts")
-      .addEdge("process_order_prompts", "execute_orders")
+      .addEdge("process_leverage_updates", "execute_orders")
       .addEdge("execute_orders", "summary")
       .addEdge("summary", END)
   }

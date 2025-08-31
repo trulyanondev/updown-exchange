@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import PrivyService from './services/privy.js'
 import TradingService, { TradingOrderParams, TradingLeverageParams, TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
+import HyperliquidService from './services/hyperliquid.js';
 import { LangGraphTradingAgent } from './agents/graph/index.js';
 
 const app = express();
@@ -68,7 +69,8 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
     // Parse and validate request body with zod - automatically typed!
     const orderParams = TradingOrderSchema.parse(req.body);
 
-    const result = await TradingService.createOrder(wallet.id, orderParams);
+    const exchangeClient = HyperliquidService.exchangeClient(wallet.id);
+    const result = await TradingService.createOrder(exchangeClient, orderParams);
     
     return res.status(200).json({ 
       success: true,

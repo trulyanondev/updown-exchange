@@ -42,13 +42,13 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => undefined
   }),
-  // Trading order prompts (intent before parameter assembly)
-  pendingOrderPrompts: Annotation<Record<string, string> | undefined>({
-    reducer: (x, y) => ({ ...x, ...y }),
+  // Trading orders (assembled parameters)
+  pendingOrders: Annotation<TradingOrderParams[] | undefined>({
+    reducer: (x, y) => y ?? x,
     default: () => undefined
   }),
-  // Trading orders (assembled parameters)
-  pendingOrders: Annotation<Record<string, TradingOrderParams> | undefined>({
+  // TP/SL orders (assembled parameters)  
+  pendingTakeProfitStopLossOrders: Annotation<TradingOrderParams[] | undefined>({
     reducer: (x, y) => y ?? x,
     default: () => undefined
   }),

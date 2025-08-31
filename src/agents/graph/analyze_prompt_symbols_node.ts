@@ -80,7 +80,7 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
     console.log(`📝 Symbols Analysis:`, analysis);
 
     // Handle potentially empty or undefined analysis results
-    const mentionedSymbols = analysis.mentionedSymbols || [];
+    const mentionedSymbols = analysis?.mentionedSymbols || [];
     const symbolCount = mentionedSymbols.length;
     const symbolsList = mentionedSymbols.join(', ');
 
@@ -88,7 +88,7 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
 Symbols Analysis: "${inputPrompt}"
 
 📊 Found ${symbolCount} mentioned symbols: ${symbolsList || 'none'}
-🤔 Reasoning: ${analysis.reasoning}
+🤔 Reasoning: ${analysis?.reasoning || 'No analysis available'}
 `;
 
     // Only return currentPrices if we found symbols

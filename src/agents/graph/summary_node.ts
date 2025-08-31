@@ -71,6 +71,7 @@ Notes:
 - DO not mention anything about what was not asked for. For example, if the user did not ask for leverage updates, do not mention them.
 - Be brief and to the point. Only mention what was asked for.  Don't repeat any information inside your summary.
 - If an order exists in the order results for a symbol, that means it succeeded (take profit order, stop loss order, limit order, market order, etc.)
+- If any order quantity is requested in a US dollar amount and it is less than $10, mention that it is below the minimum order size and may not execute.
 
 Provide your response:`;
 
