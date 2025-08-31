@@ -6,25 +6,25 @@ class PortfolioService {
     /**
      * Get user's clearinghouse state (portfolio positions)
      */
-    static async getClearinghouseState(userAddress: `0x${string}`): Promise<PerpsClearinghouseState> {
+    static async getClearinghouseState(walletAddress: `0x${string}`): Promise<PerpsClearinghouseState> {
         const infoClient = HyperliquidService.infoClientInstance;
-        return await infoClient.clearinghouseState({ user: userAddress });
+        return await infoClient.clearinghouseState({ user: walletAddress });
     }
 
     /**
      * Get user's open orders
      */
-    static async getOpenOrders(userAddress: `0x${string}`): Promise<Order[]> {
+    static async getOpenOrders(walletAddress: `0x${string}`): Promise<Order[]> {
         const infoClient = HyperliquidService.infoClientInstance;
-        return await infoClient.openOrders({ user: userAddress });
+        return await infoClient.openOrders({ user: walletAddress });
     }
 
     /**
      * Get user's portfolio performance metrics across different time periods
      */
-    static async getPortfolioPerformance(userAddress: `0x${string}`): Promise<PortfolioPeriods> {
+    static async getPortfolioPerformance(walletAddress: `0x${string}`): Promise<PortfolioPeriods> {
         const infoClient = HyperliquidService.infoClientInstance;
-        return await infoClient.portfolio({ user: userAddress });
+        return await infoClient.portfolio({ user: walletAddress });
     }
 
 

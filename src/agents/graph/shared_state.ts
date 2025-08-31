@@ -1,6 +1,6 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderResponse, SuccessResponse } from "@nktkas/hyperliquid";
+import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
 import { TradingOrderParams } from "../../services/trading.js";
 
@@ -19,6 +19,10 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => y ?? x,
     default: () => ""
   }),
+  walletAddress: Annotation<`0x${string}`>({
+    reducer: (x, y) => y ?? x,
+    default: () => "0x0000000000000000000000000000000000000000" as `0x${string}`
+  }),
   // Perpetual info properties
   allPerpMetadata: Annotation<PerpetualsUniverseDict | undefined>({
     reducer: (x, y) => y ?? x,
@@ -28,6 +32,15 @@ export const GraphState = Annotation.Root({
   currentPrices: Annotation<Record<string, number | undefined>>({
     reducer: (x, y) => ({ ...x, ...y }),
     default: () => ({})
+  }),
+  // Portfolio state properties
+  clearinghouseState: Annotation<PerpsClearinghouseState | undefined>({
+    reducer: (x, y) => y ?? x,
+    default: () => undefined
+  }),
+  openOrders: Annotation<Order[] | undefined>({
+    reducer: (x, y) => y ?? x,
+    default: () => undefined
   }),
   // Trading order prompts (intent before parameter assembly)
   pendingOrderPrompts: Annotation<Record<string, string> | undefined>({

@@ -17,6 +17,7 @@ import {
 export interface AgentRequest {
   prompt: string;
   walletId: string;
+  walletAddress: `0x${string}`;
 }
 
 export interface AgentResponse {
@@ -82,6 +83,7 @@ class LangGraphTradingAgent {
         messages: [new HumanMessage(request.prompt)],
         inputPrompt: request.prompt,
         walletId: request.walletId,
+        walletAddress: request.walletAddress,
         currentPrices: {}
       };
 
