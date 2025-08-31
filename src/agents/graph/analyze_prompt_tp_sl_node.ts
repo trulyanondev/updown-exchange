@@ -82,8 +82,6 @@ Examples:
 - "sell 0.1 eth" → NO TP/SL (this is regular order)
 - "show me btc price" → NO TP/SL (just information request)
 
-Analyze this user input: "${inputPrompt}"
-
 Identify and structure ONLY take profit and stop loss orders. Do not include regular trading orders.
 `;
 
@@ -91,8 +89,8 @@ Identify and structure ONLY take profit and stop loss orders. Do not include reg
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
       input: [
-        { role: "system", content: "You are a trading assistant analyzing user input for take profit and stop loss requirements only." },
-        { role: "user", content: analysisPrompt }
+        { role: "system", content: analysisPrompt },
+        { role: "user", content: inputPrompt }
       ],
       text: {
         format: zodTextFormat(TpSlAnalysisSchema, "tp_sl_analysis")

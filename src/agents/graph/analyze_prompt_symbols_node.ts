@@ -62,7 +62,6 @@ Examples:
 - "solana to the moon" → SOL
 - "set stop loss on sol" → SOL
 
-Analyze this user input: "${inputPrompt}"
 
 Identify ALL symbols that are explicitly mentioned or clearly implied in the input.  Symbols can be implied if the prompt suggests a symbol in the user's positions.
 `;
@@ -71,8 +70,8 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
       input: [
-        { role: "system", content: "You are a trading assistant analyzing user input to identify trading symbols." },
-        { role: "user", content: analysisPrompt }
+        { role: "system", content: analysisPrompt },
+        { role: "user", content: inputPrompt }
       ],
       text: {
         format: zodTextFormat(SymbolsAnalysisSchema, "symbols_analysis")

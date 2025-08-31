@@ -14,7 +14,6 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       orderCreationResults,
       tpslResults,
       clearinghouseState,
-      openOrders,
       orderCancellationResults
     } = state;
 

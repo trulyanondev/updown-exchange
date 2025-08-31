@@ -70,8 +70,6 @@ Examples:
 - "sell eth" → {leverageUpdates: []} (no leverage update needed)
 - "close my position" → {leverageUpdates: []} (no leverage update needed)
 
-Analyze this user input: "${inputPrompt}"
-
 Return JSON with leverageUpdates array containing symbol and leverage pairs for explicitly requested leverage changes.
 `;
 
@@ -79,8 +77,8 @@ Return JSON with leverageUpdates array containing symbol and leverage pairs for 
     const response = await openai.responses.parse({
       model: "gpt-5-nano", 
       input: [
-        { role: "system", content: "You are a trading assistant analyzing user input for leverage update requests." },
-        { role: "user", content: analysisPrompt }
+        { role: "system", content: analysisPrompt },
+        { role: "user", content: inputPrompt }
       ],
       text: {
         format: zodTextFormat(LeverageAnalysisSchema, "leverage_analysis")
