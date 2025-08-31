@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
+import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 const openai = new OpenAI();
 
@@ -51,23 +52,14 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
 
-    // Create summary of portfolio state to avoid deep type issues
-    const portfolioSummary = clearinghouseState ? 
-      `Account Value: ${clearinghouseState.marginSummary.accountValue}, Active Positions: [${clearinghouseState.assetPositions.filter(p => parseFloat(p.position.szi) !== 0).map(p => `${p.position.coin}:${p.position.szi}`).join(', ')}]` :
-      "No portfolio data";
-    
-    const ordersSummary = openOrders ? 
-      `Open Orders: ${openOrders.length} orders` :
-      "No open orders";
-
     // Create prompt for GPT to analyze TP/SL requirements
     const analysisPrompt = `
 You are a trading assistant analyzing user input to identify take profit and stop loss order requirements ONLY. Do not include regular buy/sell orders.
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
-User's current portfolio summary: ${portfolioSummary}
-User's open orders summary: ${ordersSummary}
+User's current positions summary: ${accountInfoFromState(state).positionsSummary}
+User's open orders summary: ${accountInfoFromState(state).ordersSummary}
 
 Rules for TP/SL analysis:
 1. Identify only take profit and stop loss orders

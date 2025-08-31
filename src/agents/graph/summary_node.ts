@@ -2,6 +2,7 @@ import { AIMessage } from "@langchain/core/messages";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { type GraphStateType } from "./shared_state.js";
+import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 // Define the node function for generating final summary
 export async function summaryNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -40,40 +41,15 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     const successfulTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => result.success) : [];
     const failedTpSlOrders = tpslResults ? Object.entries(tpslResults).filter(([_, result]) => !result.success) : [];
     
-    interface Position {
-      symbol: string;
-      size: number;
-      usdValue: number;
-      longOrShort: "long" | "short";
-    }
-    
-    const portfolioPositions: Position[] = clearinghouseState ? clearinghouseState.assetPositions.filter(p => parseFloat(p.position.szi) !== 0).map(p => (
-      { 
-        symbol: p.position.coin, 
-        size: parseFloat(p.position.szi), 
-        usdValue: parseFloat(p.position.positionValue), 
-        longOrShort: parseFloat(p.position.szi) > 0 ? "long" : "short" 
-      }
-    )) : [];
-
-    // Create summary of portfolio state to avoid deep type issues
-    const portfolioSummary = clearinghouseState ? 
-      `Active Positions: [${portfolioPositions.join(', ')}]` :
-      "No portfolio data";
-    
-    const ordersSummary = openOrders ? 
-      `Open Orders: ${openOrders.length} orders` :
-      "No open orders";
-
     // Create context-aware summary prompt
     const summaryPrompt = `
 You are a helpful trading assistant providing a final summary to a user based on their request and what actions were performed.
 
 Original User Request: "${inputPrompt}"
 
-User's current portfolio summary after all actions: ${portfolioSummary}
-User's open orders summary after all actions: ${ordersSummary}
-User's overall account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
+User's current portfolio summary after all actions: ${accountInfoFromState(state).positionsSummary}
+User's open orders summary after all actions: ${accountInfoFromState(state).ordersSummary}
+User's unlevered account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
 
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}

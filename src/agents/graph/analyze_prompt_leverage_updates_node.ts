@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
+import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 const openai = new OpenAI();
 
@@ -48,17 +49,12 @@ export async function analyzePromptLeverageUpdatesNode(state: GraphStateType): P
       availableSymbols.map(symbol => [symbol, allPerpMetadata[symbol]?.maxLeverage])
     );
 
-    // Create prompt for GPT to analyze leverage updates  
-    const portfolioSummary = state.clearinghouseState ? 
-      `Account Value: ${state.clearinghouseState.marginSummary.accountValue}, Active Positions: ${state.clearinghouseState.assetPositions.filter(p => parseFloat(p.position.szi) !== 0).length}` :
-      "No portfolio data";
-
     const analysisPrompt = `
 You are a trading assistant analyzing user input to determine which symbols need leverage updates and what the desired leverage should be.
 
 Available trading symbols with max leverage: ${Object.entries(maxLeverageDict).map(([sym, lev]) => `${sym}:${lev}x`).join(', ')}
 
-User's current portfolio summary: ${portfolioSummary}
+User's current positions summary: ${accountInfoFromState(state).positionsSummary}
 
 Rules:
 1. Only identify leverage updates if the user explicitly requests them

@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
+import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 const openai = new OpenAI();
 
@@ -46,6 +47,8 @@ You are a trading assistant analyzing user input to identify which trading symbo
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
+User's current positions summary: ${accountInfoFromState(state).positionsSummary}
+
 Common symbol mappings:
 - Bitcoin = BTC
 - Ethereum = ETH  
@@ -61,7 +64,7 @@ Examples:
 
 Analyze this user input: "${inputPrompt}"
 
-Identify ALL symbols that are explicitly mentioned or clearly implied in the input.
+Identify ALL symbols that are explicitly mentioned or clearly implied in the input.  Symbols can be implied if the prompt suggests a symbol in the user's positions.
 `;
 
     // Call OpenAI with structured output

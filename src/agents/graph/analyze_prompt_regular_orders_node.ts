@@ -4,7 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
-import MarketDataService from "../../services/marketdata.js";
+import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 const openai = new OpenAI();
 
@@ -63,39 +63,14 @@ export async function analyzePromptRegularOrdersNode(state: GraphStateType): Pro
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
 
-    interface Position {
-      symbol: string;
-      size: number;
-      usdValue: number;
-      longOrShort: "long" | "short";
-    }
-
-    const portfolioPositions: Position[] = clearinghouseState ? clearinghouseState.assetPositions.filter(p => parseFloat(p.position.szi) !== 0).map(p => (
-      { 
-        symbol: p.position.coin, 
-        size: parseFloat(p.position.szi), 
-        usdValue: parseFloat(p.position.positionValue), 
-        longOrShort: parseFloat(p.position.szi) > 0 ? "long" : "short" 
-      }
-    )) : [];
-
-    // Create summary of portfolio state to avoid deep type issues
-    const portfolioSummary = clearinghouseState ? 
-      `Active Positions: [${portfolioPositions.join(', ')}]` :
-      "No portfolio data";
-    
-    const ordersSummary = openOrders ? 
-      `Open Orders: ${openOrders.length} orders` :
-      "No open orders";
-
     // Create prompt for GPT to analyze regular order requirements
     const analysisPrompt = `
 You are a trading assistant analyzing user input to identify regular limit/market order requirements ONLY. Do not include take profit or stop loss orders.
 
 Available trading symbols: ${availableSymbols.join(', ')}
 
-User's current portfolio summary: ${portfolioSummary}
-User's open orders summary: ${ordersSummary}
+User's current portfolio summary: ${accountInfoFromState(state).positionsSummary}
+User's open orders summary: ${accountInfoFromState(state).ordersSummary}
 
 Rules for regular order analysis:
 1. Identify only regular BUY/SELL orders (limit or market)
