@@ -28,22 +28,15 @@ class TradingService {
     
     const szDecimals = (await MarketDataService.getPerpMetadataByAssetId(params.assetId)).szDecimals;
 
-    const perpDecimalBase = 6;
-    const maxPriceDecimals = perpDecimalBase - szDecimals;
-
-    let price = Number(params.price);
-    let size = Number(params.size);
-
-    // Format to expected Hyperliquid precision -- one last check in case rounding errors set this off
-    const finalPrice = Number(Number(price.toPrecision(5)).toFixed(maxPriceDecimals));
-    let finalSize = Number(Number(size.toPrecision(5)).toFixed(szDecimals));
+    const finalPrice = TradingService.formatPriceForOrder(Number(params.price), szDecimals);
+    const finalSize = TradingService.formatSizeForOrder(Number(params.size), szDecimals);
 
     // Map to Hyperliquid format
     const orderParams: OrderParams = {
         a: params.assetId,
         b: params.isBuy,
-        p: finalPrice.toString(),
-        s: finalSize.toString(),
+        p: finalPrice,
+        s: finalSize,
         r: params.reduceOnly,
         t: params.orderType
     };
@@ -58,6 +51,16 @@ class TradingService {
   static async updateLeverage(walletId: string, params: TradingLeverageParams): Promise<SuccessResponse> {
     const exchangeClient = HyperliquidService.exchangeClient(walletId);
     return await HyperliquidService.updateLeverage(exchangeClient, params.assetId, params.leverage);
+  }
+
+  static formatPriceForOrder(price: number, szDecimals: number): string {
+    const perpDecimalBase = 6;
+    const maxPriceDecimals = perpDecimalBase - szDecimals;
+    return Number(price.toPrecision(5)).toFixed(maxPriceDecimals);
+  }
+
+  static formatSizeForOrder(size: number, szDecimals: number): string {
+    return Number(size.toPrecision(5)).toFixed(szDecimals);
   }
 }
 

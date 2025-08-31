@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { no } from "zod/v4/locales";
 
 const openai = new OpenAI();
 
@@ -150,14 +151,19 @@ Regular Orders Analysis: "${inputPrompt}"
         const adjustedFinalPrice = isMarketOrder ? adjustedMarketPrice : (order.price.value ?? adjustedMarketPrice);
 
         if (nominalFinalPrice !== 0) {
-          const size = order.amount.type === "usd" ? (order.amount.value / nominalFinalPrice).toString() : order.amount.value.toString();
+          let size = order.amount.type === "usd" ? (order.amount.value / nominalFinalPrice) : order.amount.value;
       
+          if (order.amount.type === "usd" && size * nominalFinalPrice < 10.5) {
+            console.log(`🚨 Size is too close to minimum order size for ${order.symbol}. Setting size to $10.50 min order size`);
+            size = 10.5 / nominalFinalPrice;
+          }
+
           // Convert to TradingOrderParams
           const tradingParams: TradingOrderParams = {
             assetId: metadata.assetId,
             isBuy: order.isBuy,
             price: adjustedFinalPrice.toString(),
-            size: size,
+            size: size.toString(),
             reduceOnly: false,
             orderType: { 
               "limit": { 

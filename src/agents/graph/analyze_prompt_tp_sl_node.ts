@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
-import { TradingOrderParams } from "../../services/trading.js";
+import TradingService, { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 
 const openai = new OpenAI();
@@ -52,6 +52,8 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
 
+    const currentPrices = JSON.stringify(state.currentPrices, null, 2);
+
     // Create prompt for GPT to analyze TP/SL requirements
     const analysisPrompt = `
 You are a trading assistant analyzing user input to identify take profit and stop loss order requirements ONLY. Do not include regular buy/sell orders.
@@ -59,7 +61,8 @@ You are a trading assistant analyzing user input to identify take profit and sto
 Available trading symbols: ${availableSymbols.join(', ')}
 
 User's current positions summary: ${accountInfoFromState(state).positionsSummary}
-User's open orders summary: ${accountInfoFromState(state).ordersSummary}
+
+Current Prices: ${currentPrices}
 
 Rules for TP/SL analysis:
 1. Identify only take profit and stop loss orders
@@ -150,8 +153,8 @@ TP/SL Analysis: "${inputPrompt}"
           reduceOnly: true, // TP/SL orders are always reduce-only
           orderType: { 
             "trigger": { 
-              "isMarket": "true",
-              "triggerPx": tpsl.trigger_price.toString(),
+              "isMarket": true,
+              "triggerPx": TradingService.formatPriceForOrder(tpsl.trigger_price, metadata.szDecimals),
               "tpsl": tpsl.type === "take_profit" ? "tp" : "sl"
             }
           }
