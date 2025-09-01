@@ -21,7 +21,7 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
     // Create promises for all symbol fetches
     const pricePromises = symbolsToFetch.map(async (symbol) => {
       try {
-        const price = await MarketDataService.getCurrentPrice(symbol);
+        const price = await MarketDataService.getCurrentPerpPrice(symbol);
         console.log(`✅ Retrieved price for ${symbol}: $${price}`);
         return { symbol, price, success: true };
       } catch (error) {

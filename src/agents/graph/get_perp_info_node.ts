@@ -1,7 +1,7 @@
-import { BaseMessage, ToolMessage } from "@langchain/core/messages";
 import MarketDataService from "../../services/marketdata.js";
 import PortfolioService from "../../services/portfolio.js";
 import { type GraphStateType } from "./shared_state.js";
+import type { AssetPosition } from '@nktkas/hyperliquid';
 
 // Define the node function for getting perpetual information
 export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
@@ -9,14 +9,15 @@ export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<Gr
     console.log(`🔍 Fetching perpetual metadata and portfolio data`);
 
     // Concurrently fetch all required data
-    const [allPerpMetadata, clearinghouseState, openOrders] = await Promise.all([
+    const [allPerpMetadata, currentPerpPrices, clearinghouseState, openOrders] = await Promise.all([
       MarketDataService.getPerpetualsMetadata(),
+      MarketDataService.getCurrentPerpPrices(),
       PortfolioService.getClearinghouseState(state.walletAddress),
       PortfolioService.getOpenOrders(state.walletAddress)
     ]);
 
     const symbolCount = Object.keys(allPerpMetadata).length;
-    const positionCount = clearinghouseState.assetPositions.filter(pos => parseFloat(pos.position.szi) !== 0).length;
+    const positionCount = clearinghouseState.assetPositions.filter((pos: AssetPosition) => parseFloat(pos.position.szi) !== 0).length;
     const openOrderCount = openOrders.length;
 
     console.log(`✅ Retrieved perpetual metadata for ${symbolCount} symbols`);
@@ -24,6 +25,7 @@ export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<Gr
 
     return {
       allPerpMetadata,
+      currentPrices: currentPerpPrices,
       clearinghouseState,
       openOrders
     };

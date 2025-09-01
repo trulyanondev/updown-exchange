@@ -62,12 +62,10 @@ class LangGraphTradingAgent {
     this.workflow = new StateGraph(GraphState)
       // Add nodes to the graph
       .addNode("get_perp_info", getPerpInfoNode)
-      .addNode("analyze_prompt_symbols", analyzePromptSymbolsNode)
       .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
       .addNode("analyze_prompt_regular_orders", analyzePromptRegularOrdersNode)
       .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
       .addNode("analyze_prompt_cancel_orders", analyzePromptCancelOrdersNode)
-      .addNode("get_current_price", getCurrentPriceNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
@@ -78,17 +76,11 @@ class LangGraphTradingAgent {
       // Define the workflow edges (sequential execution)
       .addEdge(START, "get_perp_info")
 
-      // Concurrently execute all analyze nodes
-      .addEdge("get_perp_info", "analyze_prompt_symbols")
-
-      // get current prices on symbols identified in analyze_prompt_symbols
-      .addEdge("analyze_prompt_symbols", "get_current_price")
-
       // analyze user input concurrently for regular orders, TP/SL orders, leverage updates, and order cancellations
-      .addEdge("get_current_price", "analyze_prompt_regular_orders")
-      .addEdge("get_current_price", "analyze_prompt_tp_sl")
-      .addEdge("get_current_price", "analyze_prompt_leverage_updates")
-      .addEdge("get_current_price", "analyze_prompt_cancel_orders")
+      .addEdge("get_perp_info", "analyze_prompt_regular_orders")
+      .addEdge("get_perp_info", "analyze_prompt_tp_sl")
+      .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
+      .addEdge("get_perp_info", "analyze_prompt_cancel_orders")
 
       // process leverage updates, regular orders, TP/SL orders, and order cancellations
       .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")

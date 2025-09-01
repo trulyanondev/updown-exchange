@@ -10,8 +10,8 @@ export interface PerpetualsUniverseDict {
   [name: string]: PerpMetadata;
 }
 
-export interface CoinPrices {
-    [coin: string]: number;
+export interface PerpPrices {
+  [symbol: string]: number;
 }
 
 class MarketDataService {
@@ -20,14 +20,14 @@ class MarketDataService {
 
   private static readonly CURRENT_PRICES_KEY = 'current_prices';
   private static readonly CURRENT_PRICES_CACHE_TTL_SECONDS = 5; // 5 seconds
-  
-  
+
+
   // Initialize Redis client lazily
   private static redisClient: any = null;
-  
+
   private static async getRedis() {
     if (!MarketDataService.redisClient) {
-      MarketDataService.redisClient = await createClient({url: process.env.REDIS_URL!}).connect();
+      MarketDataService.redisClient = await createClient({ url: process.env.REDIS_URL! }).connect();
     }
     return MarketDataService.redisClient;
   }
@@ -55,9 +55,9 @@ class MarketDataService {
     }
     return metadata;
   }
-  
-  static async getCurrentPrice(symbol: string): Promise<number> {
-    const currentPrices = await MarketDataService.getCurrentPrices();
+
+  static async getCurrentPerpPrice(symbol: string): Promise<number> {
+    const currentPrices = await MarketDataService.getCurrentPerpPrices();
     const price = currentPrices[symbol.toLowerCase()];
     if (!price) {
       throw new Error(`Current price not found for symbol: ${symbol}`);
@@ -74,18 +74,18 @@ class MarketDataService {
    * Get current prices for all assets with Redis caching
    * Checks cache first, fetches from Hyperliquid API if not available, then caches for 5 seconds
    */
-  private static async getCurrentPrices(): Promise<CoinPrices> {
+  static async getCurrentPerpPrices(): Promise<PerpPrices> {
     try {
       const redis = await MarketDataService.getRedis();
       const cachedData = await redis.get(MarketDataService.CURRENT_PRICES_KEY);
-      
+
       if (cachedData) {
         return JSON.parse(cachedData);
       }
 
       const mids = await HyperliquidService.getAllMids();
       const currentPrices = Object.fromEntries(
-          Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
+        Object.entries(mids).map(([symbol, midPx]) => [symbol.toLowerCase(), Number(midPx)])
       );
 
       await redis.setEx(
@@ -96,12 +96,12 @@ class MarketDataService {
 
       return currentPrices;
     } catch (error) {
-      console.error('Redis error in getCurrentPrices, falling back to direct API call:', error);
-      
+      console.error('Redis error in getCurrentPerpPrices, falling back to direct API call:', error);
+
       // Fallback to direct API call if Redis fails
       const mids = await HyperliquidService.getAllMids();
       return Object.fromEntries(
-          Object.entries(mids).map(([coin, midPx]) => [coin.toLowerCase(), Number(midPx)])
+        Object.entries(mids).map(([symbol, midPx]) => [symbol.toLowerCase(), Number(midPx)])
       );
     }
   }
@@ -115,7 +115,7 @@ class MarketDataService {
     try {
       const redis = await MarketDataService.getRedis();
       const cachedData = await redis.get(MarketDataService.PERPETUALS_METADATA_KEY);
-      
+
       if (cachedData) {
         return JSON.parse(cachedData);
       }
@@ -143,10 +143,10 @@ class MarketDataService {
       return universeDict;
     } catch (error) {
       console.error('Redis error in getPerpetualsMetadata, falling back to direct API call:', error);
-      
+
       // Fallback to direct API call if Redis fails
       const metadata = await HyperliquidService.getPerpetualsMetadata();
-      
+
       const universeDict: PerpetualsUniverseDict = {};
       metadata.universe.forEach((universe, index) => {
         universeDict[universe.name.toLowerCase()] = {
@@ -154,7 +154,7 @@ class MarketDataService {
           assetId: index
         };
       });
-      
+
       return universeDict;
     }
   }

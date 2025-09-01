@@ -54,11 +54,7 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     
     // Create context-aware summary prompt
     const summaryPrompt = `
-User's current portfolio summary AFTER all actions (their position size may have changed as a result of the actions): ${accountInfoFromState(state).positionsSummary}
-User's open orders summary AFTER all actions (their order size may have changed as a result of the actions): ${accountInfoFromState(state).ordersSummary}
-User's unlevered account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
-
-Each token has different max leverage.  The max leverage for a token is available in the allPerpMetadata object.
+You are a helpful trading assistant providing a final summary to a user based on their request and what actions were performed.
 
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
@@ -66,16 +62,18 @@ ${leverageUpdatesCount > 0 ? `- Processed ${leverageUpdatesCount} leverage updat
 ${orderResultsCount > 0 ? `- Processed ${orderResultsCount} orders (${successfulRegularOrders.length} successful, ${failedRegularOrders.length} failed)` : '- No orders were processed'}
 ${tpslResultsCount > 0 ? `- Processed ${tpslResultsCount} TP/SL orders (${successfulTpSlOrders.length} successful, ${failedTpSlOrders.length} failed)` : '- No TP/SL orders were processed'}
 ${orderCancellationResultsCount > 0 ? `- Processed ${orderCancellationResultsCount} order cancellations (${successfulOrderCancellations.length} successful, ${failedOrderCancellations.length} failed)` : '- No order cancellations were performed'}
-
-Current Prices: ${currentPrices ? JSON.stringify(currentPrices, null, 2) : 'None fetched'}
-
+Order Results: ${orderCreationResults ? JSON.stringify(orderCreationResults, null, 2) : 'None processed'}
+Cancel Order Results: ${orderCancellationResults ? JSON.stringify(orderCancellationResults, null, 2) : 'None performed'}
+Take Profit/Stop Loss Results: ${tpslResults ? JSON.stringify(tpslResults, null, 2) : 'None performed'}
 Leverage Update Results: ${leverageUpdateResults ? JSON.stringify(leverageUpdateResults, null, 2) : 'None performed'}
 
-Order Results: ${orderCreationResults ? JSON.stringify(orderCreationResults, null, 2) : 'None processed'}
+State after all actions:
 
-Cancel Order Results: ${orderCancellationResults ? JSON.stringify(orderCancellationResults, null, 2) : 'None performed'}
+User's current portfolio summary: ${accountInfoFromState(state).positionsSummary}
+User's open orders summary: ${accountInfoFromState(state).ordersSummary}
+User's unlevered account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
 
-Take Profit/Stop Loss Results: ${tpslResults ? JSON.stringify(tpslResults, null, 2) : 'None performed'}
+Current Prices: ${currentPrices ? JSON.stringify(currentPrices, null, 2) : 'None fetched'}
 
 Your task is to:
 1. If the user asked a question (like "what's the BTC price?"), answer it directly using the data gathered
