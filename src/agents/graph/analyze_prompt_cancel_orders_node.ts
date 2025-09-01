@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -30,7 +31,7 @@ export async function analyzePromptCancelOrdersNode(state: GraphStateType): Prom
   error?: string;
 }> {
   try {
-    const { inputPrompt, openOrders } = state;
+    const { openOrders } = state;
 
     // Early return if no open orders to analyze
     if (!openOrders || openOrders.length === 0) {
@@ -45,7 +46,7 @@ export async function analyzePromptCancelOrdersNode(state: GraphStateType): Prom
       };
     }
 
-    console.log(`❌ Analyzing order cancellation requests in input: "${inputPrompt}"`);
+    console.log(`❌ Analyzing order cancellation requests from conversation`);
 
     // Create prompt for GPT to analyze cancellation requirements
     const analysisPrompt = `
@@ -76,14 +77,14 @@ Return JSON with ordersToCancel array containing oid and reason for each order t
       model: "gpt-5-nano",
       input: [
         { role: "system", content: analysisPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(CancelOrdersAnalysisSchema, "cancel_orders_analysis")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as CancelOrdersAnalysis;
 
     console.log(`❌ Cancel Orders Analysis:`, JSON.stringify(analysis, null, 2));
 
@@ -92,7 +93,7 @@ Return JSON with ordersToCancel array containing oid and reason for each order t
     const cancelCount = ordersToCancel.length;
 
     const content = `
-Cancel Orders Analysis: "${inputPrompt}"
+Cancel Orders Analysis
 
 ❌ Found ${cancelCount} orders to cancel
 🤔 Reasoning: ${analysis?.reasoning || 'No analysis available'}

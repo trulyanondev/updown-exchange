@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -21,7 +22,7 @@ export async function analyzePromptSymbolsNode(state: GraphStateType): Promise<{
   error?: string;
 }> {
   try {
-    const { inputPrompt, allPerpMetadata } = state;
+    const { allPerpMetadata } = state;
 
     if (!allPerpMetadata) {
       return {
@@ -36,7 +37,7 @@ export async function analyzePromptSymbolsNode(state: GraphStateType): Promise<{
       };
     }
 
-    console.log(`🔍 Analyzing symbols in input: "${inputPrompt}"`);
+    console.log(`🔍 Analyzing symbols from conversation`);
 
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
@@ -71,14 +72,14 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
       model: "gpt-5-nano",
       input: [
         { role: "system", content: analysisPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(SymbolsAnalysisSchema, "symbols_analysis")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as z.infer<typeof SymbolsAnalysisSchema>;
 
     console.log(`📝 Symbols Analysis:`, analysis);
 
@@ -88,7 +89,7 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
     const symbolsList = mentionedSymbols.join(', ');
 
     const content = `
-Symbols Analysis: "${inputPrompt}"
+Symbols Analysis
 
 📊 Found ${symbolCount} mentioned symbols: ${symbolsList || 'none'}
 🤔 Reasoning: ${analysis?.reasoning || 'No analysis available'}

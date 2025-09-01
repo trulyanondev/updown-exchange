@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -26,7 +27,7 @@ export async function analyzePromptLeverageUpdatesNode(state: GraphStateType): P
   error?: string;
 }> {
   try {
-    const { inputPrompt, allPerpMetadata } = state;
+    const { allPerpMetadata } = state;
 
     if (!allPerpMetadata) {
       return {
@@ -41,7 +42,7 @@ export async function analyzePromptLeverageUpdatesNode(state: GraphStateType): P
       };
     }
 
-    console.log(`🔧 Analyzing leverage updates in input: "${inputPrompt}"`);
+    console.log(`🔧 Analyzing leverage updates from conversation`);
 
     // Get available symbols and their max leverage for context
     const availableSymbols = Object.keys(allPerpMetadata);
@@ -78,14 +79,14 @@ Return JSON with leverageUpdates array containing symbol and leverage pairs for 
       model: "gpt-5-nano", 
       input: [
         { role: "system", content: analysisPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(LeverageAnalysisSchema, "leverage_analysis")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as z.infer<typeof LeverageAnalysisSchema>;
 
     console.log(`🔧 Leverage Analysis:`, analysis);
 
@@ -95,7 +96,7 @@ Return JSON with leverageUpdates array containing symbol and leverage pairs for 
     const leverageList = leverageUpdates.map(update => `${update.symbol}:${update.leverage}x`).join(', ');
 
     const content = `
-Leverage Analysis: "${inputPrompt}"
+Leverage Analysis
 
 🔧 Found ${leverageCount} symbols needing leverage updates
 🤔 Reasoning: ${analysis?.reasoning}

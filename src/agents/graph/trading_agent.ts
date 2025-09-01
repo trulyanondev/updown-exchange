@@ -2,7 +2,7 @@
 // Constructs a StateGraph workflow for trading operations
 
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { HumanMessage } from "@langchain/core/messages";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import HyperliquidService from "../../services/hyperliquid.js";
 import {
   getPerpInfoNode,
@@ -19,11 +19,13 @@ import {
   analyzePromptCancelOrdersNode,
   GraphState
 } from "./index.js";
+import { langchain_message, Message } from "../../services/chat.js";
 
 export interface AgentRequest {
   prompt: string;
   walletId: string;
   walletAddress: `0x${string}`;
+  messages?: BaseMessage[];
 }
 
 export interface AgentResponse {
@@ -125,8 +127,7 @@ class LangGraphTradingAgent {
 
       // Initialize the state with required fields including shared exchange client
       const initialState: Partial<typeof GraphState.State> = {
-        messages: [new HumanMessage(request.prompt)],
-        inputPrompt: request.prompt,
+        messages: [...(request.messages ?? []), new HumanMessage(request.prompt)],
         walletAddress: request.walletAddress,
         exchangeClient: exchangeClient,
         currentPrices: {}

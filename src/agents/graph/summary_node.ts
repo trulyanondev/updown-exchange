@@ -4,6 +4,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -16,7 +17,6 @@ const SummarySchema = z.object({
 export async function summaryNode(state: GraphStateType): Promise<Partial<GraphStateType>> {
   try {
     const { 
-      inputPrompt, 
       currentPrices, 
       leverageUpdateResults, 
       orderCreationResults,
@@ -25,7 +25,7 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
       orderCancellationResults
     } = state;
 
-    console.log(`📄 Generating summary for prompt: "${inputPrompt}"`);
+    console.log(`📄 Generating summary"`);
 
     // Analyze the state to understand what operations were performed
     const pricesCount = currentPrices ? Object.keys(currentPrices).length : 0;
@@ -103,14 +103,14 @@ Provide your response:`;
       model: "gpt-5-nano",
       input: [
         { role: "system", content: summaryPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(SummarySchema, "summary")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as z.infer<typeof SummarySchema>;
     const summaryResult = analysis?.summary || "Unable to generate summary";
 
     console.log(`📋 Generated summary:`, summaryResult);
@@ -130,7 +130,7 @@ Provide your response:`;
     console.error(`❌ Error generating summary:`, error);
 
     // Fallback summary if GPT fails
-    const fallbackSummary = `I've processed your request: "${state.inputPrompt}". ${
+    const fallbackSummary = `I've processed your request. ${
       state.currentPrices ? `Fetched prices for ${Object.keys(state.currentPrices).length} symbols. ` : ''
     }${
       state.leverageUpdateResults ? `Updated leverage for ${Object.keys(state.leverageUpdateResults).length} symbols. ` : ''

@@ -3,9 +3,13 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import PrivyService from './services/privy.js'
-import TradingService, { TradingOrderParams, TradingLeverageParams, TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
+import TradingService, { TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
 import HyperliquidService from './services/hyperliquid.js';
 import { LangGraphTradingAgent } from './agents/graph/index.js';
+import ChatService from './services/chat.js';
+import { AuthenticatedRequest } from './types/express.js';
+import { HumanMessage, BaseMessage, AIMessage } from '@langchain/core/messages';
+import { langchain_message } from './services/chat.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,8 +36,9 @@ async function authenticateUser(req: express.Request, res: express.Response, nex
     // Verify user authentication
     const userId = await PrivyService.verifyAndGetUserId(token);
     
-    // Attach user to request object for downstream handlers
+    // Attach user and token to request object for downstream handlers
     (req as any).userId = userId;
+    (req as any).privyToken = token;
     
     next();
   } catch (error) {
@@ -59,7 +64,7 @@ app.get('/health', (req, res) => {
 // Create order endpoint
 app.post('/api/create_order', authenticateUser, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     
     const wallet = await PrivyService.getDelegatedWallet(userId);
     if (!wallet || !wallet.id) {
@@ -102,7 +107,7 @@ app.post('/api/create_order', authenticateUser, async (req, res) => {
 // Update leverage endpoint
 app.post('/api/update_leverage', authenticateUser, async (req, res) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     
     const wallet = await PrivyService.getDelegatedWallet(userId);
     if (!wallet || !wallet.id) {
@@ -148,7 +153,7 @@ app.post('/api/prompt', authenticateUser, async (req, res) => {
 
   req.setTimeout(120000);
   try {
-    const userId = (req as any).userId;
+    const userId = (req as AuthenticatedRequest).userId;
     
     const wallet = await PrivyService.getDelegatedWallet(userId);
     if (!wallet || !wallet.id) {
@@ -174,6 +179,61 @@ app.post('/api/prompt', authenticateUser, async (req, res) => {
     });
     
     return res.status(200).json(result);
+  } catch (error) {
+    console.error('Trading agent endpoint error:', error);
+    
+    return res.status(500).json({ 
+      error: 'Failed to process trading prompt', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+// Trading agent chat endpoint, threads are saved in supabase and context is preserved between requests
+app.post('/api/chat', authenticateUser, async (req, res) => {
+  req.setTimeout(120000);
+  try {
+    const userId = (req as AuthenticatedRequest).userId;
+    
+    const wallet = await PrivyService.getDelegatedWallet(userId);
+    if (!wallet || !wallet.id) {
+      return res.status(400).json({ 
+        error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
+      });
+    }
+
+    const { prompt, thread_id } = req.body;
+    
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ 
+        error: 'Invalid request. Expected: { "prompt": "your trading request" }' 
+      });
+    }
+
+    let messages: BaseMessage[] = [];
+    if (thread_id) {
+      messages = (await ChatService.getMessages(thread_id, (req as AuthenticatedRequest).privyToken)).map(message => langchain_message(message));
+    } else {
+      messages = [new HumanMessage(prompt)];
+    }
+
+    // Create LangGraph trading agent and process the prompt
+    const agent = new LangGraphTradingAgent();
+    const result = await agent.processPrompt({
+      prompt,
+      walletId: wallet.id,
+      walletAddress: wallet.address as `0x${string}`,
+      messages: messages
+    });
+
+    const messagesToSave = [
+      new HumanMessage(prompt),
+      new AIMessage(result.message)
+    ];
+
+    const saveResult = await ChatService.saveMessages(thread_id, messagesToSave, (req as AuthenticatedRequest).privyToken);
+    
+    return res.status(200).json(saveResult);
   } catch (error) {
     console.error('Trading agent endpoint error:', error);
     

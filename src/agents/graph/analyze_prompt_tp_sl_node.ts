@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import TradingService, { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -32,7 +33,7 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
   error?: string;
 }> {
   try {
-    const { inputPrompt, allPerpMetadata, clearinghouseState, openOrders } = state;
+    const { allPerpMetadata, clearinghouseState, openOrders } = state;
 
     if (!allPerpMetadata) {
       return {
@@ -47,7 +48,7 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
       };
     }
 
-    console.log(`🎯 Analyzing TP/SL orders in input: "${inputPrompt}"`);
+    console.log(`🎯 Analyzing TP/SL orders from conversation`);
 
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
@@ -90,14 +91,14 @@ Identify and structure ONLY take profit and stop loss orders. Do not include reg
       model: "gpt-5-nano",
       input: [
         { role: "system", content: analysisPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(TpSlAnalysisSchema, "tp_sl_analysis")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as TpSlAnalysis;
 
     console.log(`🎯 TP/SL Analysis:`, analysis);
 
@@ -106,7 +107,7 @@ Identify and structure ONLY take profit and stop loss orders. Do not include reg
     const tpSlCount = tpSlOrders.length;
 
     const content = `
-TP/SL Analysis: "${inputPrompt}"
+TP/SL Analysis
 
 🎯 Found ${tpSlCount} TP/SL orders
 🤔 Reasoning: ${analysis?.reasoning}

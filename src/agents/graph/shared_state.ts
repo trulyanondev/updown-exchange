@@ -10,11 +10,6 @@ export const GraphState = Annotation.Root({
     reducer: (x, y) => x.concat(y),
     default: () => []
   }),
-  // Input and identification (required)
-  inputPrompt: Annotation<string>({
-    reducer: (x, y) => y ?? x,
-    default: () => ""
-  }),
   walletAddress: Annotation<`0x${string}`>({
     reducer: (x, y) => y ?? x,
     default: () => "0x0000000000000000000000000000000000000000" as `0x${string}`

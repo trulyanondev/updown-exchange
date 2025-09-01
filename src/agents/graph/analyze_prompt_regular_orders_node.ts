@@ -5,7 +5,7 @@ import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
-import { no } from "zod/v4/locales";
+import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
 
 const openai = new OpenAI();
 
@@ -44,7 +44,7 @@ export async function analyzePromptRegularOrdersNode(state: GraphStateType): Pro
   error?: string;
 }> {
   try {
-    const { inputPrompt, allPerpMetadata, clearinghouseState, openOrders } = state;
+    const { allPerpMetadata, clearinghouseState, openOrders } = state;
 
     if (!allPerpMetadata) {
       return {
@@ -59,7 +59,7 @@ export async function analyzePromptRegularOrdersNode(state: GraphStateType): Pro
       };
     }
 
-    console.log(`📋 Analyzing regular orders in input: "${inputPrompt}"`);
+    console.log(`📋 Analyzing regular orders from conversation messages`);
 
     // Get available symbols for context
     const availableSymbols = Object.keys(allPerpMetadata);
@@ -103,14 +103,14 @@ Identify and structure ONLY regular trading orders. Do not include take profit o
       model: "gpt-5-nano",
       input: [
         { role: "system", content: analysisPrompt },
-        { role: "user", content: inputPrompt }
+        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(RegularOrdersAnalysisSchema, "regular_orders_analysis")
       }
     });
 
-    const analysis = response.output_parsed;
+    const analysis = response.output_parsed as RegularOrdersAnalysis;
 
     console.log(`📋 Regular Orders Analysis:`, JSON.stringify(analysis, null, 2));
 
@@ -119,7 +119,7 @@ Identify and structure ONLY regular trading orders. Do not include take profit o
     const orderCount = orders.length;
 
     const content = `
-Regular Orders Analysis: "${inputPrompt}"
+Regular Orders Analysis
 
 📋 Found ${orderCount} regular orders
 🤔 Reasoning: ${analysis?.reasoning}
