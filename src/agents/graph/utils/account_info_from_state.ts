@@ -5,6 +5,8 @@ interface AccountInfoGraphStatePosition {
     size: number;
     usdValue: number;
     longOrShort: "long" | "short";
+    leverage: number;
+    unrealized_gain_loss: number;
 }
 
 export function accountInfoFromState(state: GraphStateType): { positionsSummary: string, ordersSummary: string } {
@@ -16,7 +18,9 @@ export function accountInfoFromState(state: GraphStateType): { positionsSummary:
             symbol: p.position.coin,
             size: parseFloat(p.position.szi),
             usdValue: parseFloat(p.position.positionValue),
-            longOrShort: parseFloat(p.position.szi) > 0 ? "long" : "short"
+            longOrShort: parseFloat(p.position.szi) > 0 ? "long" : "short",
+            leverage: p.position.leverage.value,
+            unrealized_gain_loss: parseFloat(p.position.unrealizedPnl)
         }
     )) : [];
 

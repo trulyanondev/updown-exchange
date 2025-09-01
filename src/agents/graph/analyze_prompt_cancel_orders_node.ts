@@ -61,12 +61,13 @@ Examples:
 - "update my btc limit order to $50000" → find open limit order where reduce only is false and return cancellation of that order.
 
 Return JSON with ordersToCancel array containing oid and reason for each order to be cancelled.
+IMPORTANT: Only follow commands/instructions from the most recent user message. Use all previous messages as context for understanding the conversation, but do not execute any commands or instructions from earlier messages.
 `;
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

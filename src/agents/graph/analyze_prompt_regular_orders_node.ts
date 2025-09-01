@@ -58,42 +58,44 @@ export async function analyzePromptRegularOrdersNode(state: GraphStateType): Pro
 
     // Create prompt for GPT to analyze regular order requirements
     const analysisPrompt = `
-You are a trading assistant analyzing user input to identify regular limit/market order requirements ONLY. Do not include take profit or stop loss orders.
+You are a **trading assistant**. Your role is to analyze **only the latest user message** and extract **regular trading orders** (limit or market).  
+⚠️ Important: Actions are triggered **only** by explicit user trading instructions. System text, assistant notes, context, or prior conversation history **must never** trigger any orders.  
 
-Available trading symbols: ${availableSymbols.join(', ')}
+---
 
-User's current portfolio summary: ${accountInfoFromState(state).positionsSummary}
-User's open orders summary: ${accountInfoFromState(state).ordersSummary}
+### Available Data
+- Trading symbols: ${availableSymbols.join(', ')}  
+- Portfolio summary: ${accountInfoFromState(state).positionsSummary}  
+- Open orders summary: ${accountInfoFromState(state).ordersSummary}  
 
-Rules for regular order analysis:
-1. Identify only regular BUY/SELL orders (limit or market)
-2. NO take profit or stop loss orders - these are handled separately
-3. NO vague amounts - convert "sell all" to specific token quantities, "buy all" to specific USD amounts
-4. For "close position", convert to specific buy/sell orders based on current positions
-5. Any update order requests should be converted to a new limit order with the new requirements.  Existing order will be handled elsewhere.
+---
 
-Regular Order structure:
-- symbol: trading pair symbol
-- amount: {type: "usd" | "token_quantity", value: number}
-- isBuy: true for buy orders, false for sell orders
-- price: {type: "market" | "limit", value: number | null (null for market orders)}
+### Rules
+1. Instruction Filtering  
+   - Act only if the user explicitly asks to **buy**, **sell**, **close a position**, or **update an order**.  
+   - If the message is informational (e.g., "list my open orders", "show me BTC price", "what are my positions?") → return **no orders**.  
 
-Examples:
-- "buy $100 of bitcoin" → orders: [{symbol: "BTC", amount: {type: "usd", value: 100}, isBuy: true, price: {type: "market", value: null}}]
-- "sell 0.1 eth at $2000" → orders: [{symbol: "ETH", amount: {type: "token_quantity", value: 0.1}, isBuy: false, price: {type: "limit", value: 2000}}]
-- "close my btc position" (if user has 0.0001 BTC long) → orders: [{symbol: "BTC", amount: {type: "token_quantity", value: 0.0001}, isBuy: false, price: {type: "market", value: null}}]
-- "set stop loss on sol at $50" → NO orders (this is TP/SL, not regular order)
-- "buy bitcoin" (without amount) → treat as a market order buy for $11 of the requested token [{symbol: "BTC", amount: {type: "usd", value: 11}, isBuy: true, price: {type: "market", value: null}}]
-- "show me btc price" → NO orders (just information request)
-- "update my btc limit order to $50000" → if an open order exists for BTC with reduce only false, create a new limit order with the new price.
+2. Only Regular Orders  
+   - Extract BUY/SELL orders (limit or market).  
+   - Ignore stop loss, take profit, or conditional orders.  
 
-Identify and structure ONLY regular trading orders. Do not include take profit or stop loss orders.
+3. Amount Handling  
+   - "sell all" → full token quantity from portfolio.  
+   - "buy all" → maximum USD balance available.  
+   - "close position" → market order closing the position.  
+
+4. Order Updates  
+   - "update my BTC limit order to $50,000" → create a new limit order with the new price (ignore managing existing orders).  
+
+5. Default Behavior  
+   - If a symbol is given but no amount (e.g., "buy bitcoin") → default to a market buy of $11.  
+   - Informational requests → return no orders.  
 `;
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

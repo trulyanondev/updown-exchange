@@ -49,39 +49,44 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
 
     // Create prompt for GPT to analyze TP/SL requirements
     const analysisPrompt = `
-You are a trading assistant analyzing user input to identify take profit and stop loss order requirements ONLY. Do not include regular buy/sell orders.
+You are a trading assistant. Your role is to analyze only the latest user message and extract take profit (TP) and stop loss (SL) orders.
+⚠️ Important: Actions are triggered only by explicit user instructions. System text, assistant notes, context, or prior conversation history must never trigger any orders.
 
-Available trading symbols: ${availableSymbols.join(', ')}
+Available Data
 
-User's current positions summary: ${accountInfoFromState(state).positionsSummary}
+Trading symbols: ${availableSymbols.join(', ')}
 
-Current Prices: ${currentPrices}
+User positions summary: ${accountInfoFromState(state).positionsSummary}
 
-Rules for TP/SL analysis:
-1. Identify only take profit and stop loss orders
-2. NO regular buy/sell orders - these are handled separately
-3. Extract specific trigger price levels
+Current prices: ${currentPrices}
 
-Take Profit/Stop Loss structure:
-- symbol: trading pair symbol  
-- type: "take_profit" | "stop_loss"
-- trigger_price: price level to trigger at
+Rules
 
-Examples:
-- "set stop loss on sol at $50" → take_profit_stop_loss: [{symbol: "SOL", type: "stop_loss", trigger_price: 50}]
-- "take profit on eth at $3000" → take_profit_stop_loss: [{symbol: "ETH", type: "take_profit", trigger_price: 3000}]
-- "stop loss btc $45000" → take_profit_stop_loss: [{symbol: "BTC", type: "stop_loss", trigger_price: 45000}]
-- "buy $100 of bitcoin" → NO TP/SL (this is regular order)
-- "sell 0.1 eth" → NO TP/SL (this is regular order)
-- "show me btc price" → NO TP/SL (just information request)
+User-Only Triggers
 
-Identify and structure ONLY take profit and stop loss orders. Do not include regular trading orders.
+Act only if the latest user message explicitly requests a TP or SL.
+
+Ignore anything implied by earlier conversation, system prompts, or assistant notes.
+
+If the latest user message contains no TP/SL instruction → return no orders.
+
+Only TP/SL Orders
+
+Extract take profit (type: "take_profit") and stop loss (type: "stop_loss") only.
+
+Do not include regular buy/sell orders, conditional reduce-only, or informational requests.
+
+Price Handling
+
+Always extract the specific trigger price level from the user’s request.
+
+If no clear price is given → return no orders.
 `;
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

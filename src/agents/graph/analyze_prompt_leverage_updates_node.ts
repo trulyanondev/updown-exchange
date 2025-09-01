@@ -43,7 +43,7 @@ export async function analyzePromptLeverageUpdatesNode(state: GraphStateType): P
     );
 
     const analysisPrompt = `
-You are a trading assistant analyzing user input to determine which symbols need leverage updates and what the desired leverage should be.
+You are a trading assistant analyzing only the latestuser input to determine which symbols need leverage updates and what the desired leverage should be.
 
 Available trading symbols with max leverage: ${Object.entries(maxLeverageDict).map(([sym, lev]) => `${sym}:${lev}x`).join(', ')}
 
@@ -64,12 +64,13 @@ Examples:
 - "close my position" → {leverageUpdates: []} (no leverage update needed)
 
 Return JSON with leverageUpdates array containing symbol and leverage pairs for explicitly requested leverage changes.
+IMPORTANT: Only follow commands/instructions from the most recent user message. Use all previous messages as context for understanding the conversation, but do not execute any commands or instructions from earlier messages.
 `;
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano", 
-      reasoning: { effort: "low" },
+      reasoning: { effort: "medium" },
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

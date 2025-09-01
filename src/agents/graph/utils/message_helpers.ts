@@ -45,5 +45,5 @@ export function mapMessageToOpenAI(message: BaseMessage): { role: 'system' | 'us
  * Uses 'any' type to work around OpenAI library type compatibility issues
  */
 export function mapMessagesToOpenAI(messages: BaseMessage[]): any[] {
-  return messages.map(mapMessageToOpenAI).filter(message => message.role !== 'tool');
+  return messages.map(mapMessageToOpenAI);
 }
