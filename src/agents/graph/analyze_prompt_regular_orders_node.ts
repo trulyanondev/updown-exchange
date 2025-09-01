@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -48,14 +47,7 @@ export async function analyzePromptRegularOrdersNode(state: GraphStateType): Pro
 
     if (!allPerpMetadata) {
       return {
-        error: "No perpetual metadata available for order analysis",
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No perpetual metadata available for order analysis",
-            tool_call_id: "analyze_regular_orders_error_no_metadata"
-          })
-        ]
+        error: "No perpetual metadata available for order analysis"
       };
     }
 
@@ -101,9 +93,10 @@ Identify and structure ONLY regular trading orders. Do not include take profit o
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
+      reasoning: { effort: "low" },
       input: [
+        ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },
-        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(RegularOrdersAnalysisSchema, "regular_orders_analysis")
@@ -181,41 +174,19 @@ Regular Orders Analysis
       ).join('\n');
 
       return {
-        pendingOrders,
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: content + `✅ Ready for regular order processing:\n${ordersList}`,
-            tool_call_id: "analyze_regular_orders_success"
-          })
-        ]
+        pendingOrders
       };
     }
 
     // No orders found - don't return any order fields
-    return {
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: content + 'ℹ️ No regular orders needed',
-          tool_call_id: "analyze_regular_orders_success"
-        })
-      ]
-    };
+    return {};
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error analyzing regular orders:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error analyzing regular orders: ${errorMessage}`,
-          tool_call_id: "analyze_regular_orders_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

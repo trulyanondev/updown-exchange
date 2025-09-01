@@ -61,8 +61,8 @@ class ChatService {
       throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
     }
 
-    const apiMessages: MessageApiResponse[] = await response.json();
-    const messages: Message[] = apiMessages.map(msg => ({
+    const apiMessages: { messages: MessageApiResponse[] } = await response.json();
+    const messages: Message[] = apiMessages.messages.map(msg => ({
       ...msg,
       created_at: new Date(msg.created_at)
     }));

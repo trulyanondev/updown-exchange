@@ -25,28 +25,14 @@ export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<Gr
     return {
       allPerpMetadata,
       clearinghouseState,
-      openOrders,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Retrieved perpetual metadata for ${symbolCount} symbols and portfolio data (${positionCount} positions, ${openOrderCount} open orders)`,
-          tool_call_id: "get_perp_info_success"
-        })
-      ]
+      openOrders
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error fetching perpetual metadata and portfolio data:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error retrieving perpetual metadata and portfolio data: ${errorMessage}`,
-          tool_call_id: "get_perp_info_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

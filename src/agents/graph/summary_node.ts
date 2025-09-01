@@ -54,9 +54,11 @@ export async function summaryNode(state: GraphStateType): Promise<Partial<GraphS
     
     // Create context-aware summary prompt
     const summaryPrompt = `
-User's current portfolio summary after all actions: ${accountInfoFromState(state).positionsSummary}
-User's open orders summary after all actions: ${accountInfoFromState(state).ordersSummary}
+User's current portfolio summary AFTER all actions (their position size may have changed as a result of the actions): ${accountInfoFromState(state).positionsSummary}
+User's open orders summary AFTER all actions (their order size may have changed as a result of the actions): ${accountInfoFromState(state).ordersSummary}
 User's unlevered account value in USD: $${clearinghouseState ? clearinghouseState.marginSummary.accountValue : 'unknown'}
+
+Each token has different max leverage.  The max leverage for a token is available in the allPerpMetadata object.
 
 Context of what happened:
 ${pricesCount > 0 ? `- Fetched current prices for ${pricesCount} symbols: ${Object.keys(currentPrices || {}).join(', ')}` : '- No prices were fetched'}
@@ -98,13 +100,18 @@ Notes:
 
 Provide your response:`;
 
+    let input = [
+      { role: "system", content: summaryPrompt },
+      ...mapMessagesToOpenAI(state.messages)
+    ];
+
+    console.log(`🔍 Summary messages:`, state.messages);
+
     // Call GPT for summary generation
     const response = await openai.responses.parse({
-      model: "gpt-5-nano",
-      input: [
-        { role: "system", content: summaryPrompt },
-        ...mapMessagesToOpenAI(state.messages)
-      ],
+      model: "gpt-5-mini",
+      reasoning: { effort: "minimal" },
+      input: input,
       text: {
         format: zodTextFormat(SummarySchema, "summary")
       }
@@ -119,10 +126,7 @@ Provide your response:`;
     const content = summaryResult.trim();
 
     return {
-      messages: [
-        ...state.messages,
-        new AIMessage(content)
-      ]
+      messages: [ new AIMessage(content) ]
     };
 
   } catch (error) {
@@ -139,11 +143,7 @@ Provide your response:`;
     }See the detailed results above.`;
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new AIMessage(fallbackSummary)
-      ]
+      error: errorMessage
     };
   }
 }

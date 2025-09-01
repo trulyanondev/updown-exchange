@@ -9,15 +9,7 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
 
     // Early return if no pending TP/SL orders
     if (!pendingTakeProfitStopLossOrders || pendingTakeProfitStopLossOrders.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No pending TP/SL orders to execute",
-            tool_call_id: "execute_tpsl_orders_no_pending"
-          })
-        ]
-      };
+      return {};
     }
 
     // Execute TP/SL orders using shared helper function with shared exchange client
@@ -25,14 +17,7 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
 
     return {
       tpslResults: execution.results,
-      pendingTakeProfitStopLossOrders: undefined,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: execution.content,
-          tool_call_id: "execute_tpsl_orders_success"
-        })
-      ]
+      pendingTakeProfitStopLossOrders: undefined
     };
 
   } catch (error) {
@@ -40,14 +25,7 @@ export async function executeTpSlOrdersNode(state: GraphStateType): Promise<Part
     console.error(`❌ Error executing TP/SL orders:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error executing TP/SL orders: ${errorMessage}`,
-          tool_call_id: "execute_tpsl_orders_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

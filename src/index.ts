@@ -213,8 +213,6 @@ app.post('/api/chat', authenticateUser, async (req, res) => {
     let messages: BaseMessage[] = [];
     if (thread_id) {
       messages = (await ChatService.getMessages(thread_id, (req as AuthenticatedRequest).privyToken)).map(message => langchain_message(message));
-    } else {
-      messages = [new HumanMessage(prompt)];
     }
 
     // Create LangGraph trading agent and process the prompt
@@ -233,7 +231,11 @@ app.post('/api/chat', authenticateUser, async (req, res) => {
 
     const saveResult = await ChatService.saveMessages(thread_id, messagesToSave, (req as AuthenticatedRequest).privyToken);
     
-    return res.status(200).json(saveResult);
+    return res.status(200).json({
+      success: true,
+      thread_id: saveResult.thread_id,
+      message: result.message
+    });
   } catch (error) {
     console.error('Trading agent endpoint error:', error);
     

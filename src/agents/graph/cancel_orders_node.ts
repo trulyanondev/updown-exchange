@@ -12,28 +12,12 @@ export async function cancelOrdersNode(state: GraphStateType): Promise<Partial<G
 
     // Early return if no pending cancellations
     if (!pendingOrderCancellations || pendingOrderCancellations.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No pending order cancellations to execute",
-            tool_call_id: "cancel_orders_no_pending"
-          })
-        ]
-      };
+      return {};
     }
 
     // Early return if no open orders available
     if (!openOrders || openOrders.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No open orders available for cancellation",
-            tool_call_id: "cancel_orders_no_open_orders"
-          })
-        ]
-      };
+      return {};
     }
 
     console.log(`❌ Cancelling ${pendingOrderCancellations.length} orders`);
@@ -126,13 +110,6 @@ export async function cancelOrdersNode(state: GraphStateType): Promise<Partial<G
     return {
       orderCancellationResults: allCancellationResults,
       pendingOrderCancellations: failedCancellations.length > 0 ? failedCancellations : undefined, // Clear successful cancellations, keep failed ones
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content,
-          tool_call_id: "cancel_orders_success"
-        })
-      ]
     };
 
   } catch (error) {
@@ -140,14 +117,7 @@ export async function cancelOrdersNode(state: GraphStateType): Promise<Partial<G
     console.error(`❌ Error cancelling orders:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error cancelling orders: ${errorMessage}`,
-          tool_call_id: "cancel_orders_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

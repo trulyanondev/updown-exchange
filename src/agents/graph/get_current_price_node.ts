@@ -11,15 +11,7 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
     const symbolsToFetch = currentPrices ? Object.keys(currentPrices) : [];
 
     if (symbolsToFetch.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No symbols found in currentPrices record for price retrieval",
-            tool_call_id: "get_current_price_error_no_symbols"
-          })
-        ]
-      };
+      return {};
     }
 
     console.log(`💰 Fetching current prices for symbols: ${symbolsToFetch.join(', ')}`);
@@ -82,28 +74,14 @@ export async function getCurrentPriceNode(state: GraphStateType): Promise<Partia
     }
 
     return {
-      currentPrices: updatedCurrentPrices,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content,
-          tool_call_id: "get_current_price_success"
-        })
-      ]
+      currentPrices: updatedCurrentPrices
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error fetching current prices:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error retrieving current prices: ${errorMessage}`,
-          tool_call_id: "get_current_price_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

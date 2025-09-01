@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -37,14 +36,7 @@ export async function analyzePromptTpSlNode(state: GraphStateType): Promise<{
 
     if (!allPerpMetadata) {
       return {
-        error: "No perpetual metadata available for TP/SL analysis",
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No perpetual metadata available for TP/SL analysis",
-            tool_call_id: "analyze_tp_sl_error_no_metadata"
-          })
-        ]
+        error: "No perpetual metadata available for TP/SL analysis"
       };
     }
 
@@ -89,9 +81,10 @@ Identify and structure ONLY take profit and stop loss orders. Do not include reg
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
+      reasoning: { effort: "low" },
       input: [
+        ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },
-        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(TpSlAnalysisSchema, "tp_sl_analysis")
@@ -168,40 +161,18 @@ TP/SL Analysis
 
       return {
         pendingTakeProfitStopLossOrders: pendingTpSlOrders,
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: content + `✅ Ready for TP/SL order processing:\n${tpSlList}`,
-            tool_call_id: "analyze_tp_sl_success"
-          })
-        ]
       };
     }
 
     // No TP/SL orders found - don't return any order fields
-    return {
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: content + 'ℹ️ No TP/SL orders needed',
-          tool_call_id: "analyze_tp_sl_success"
-        })
-      ]
-    };
+    return {};
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error analyzing TP/SL orders:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error analyzing TP/SL orders: ${errorMessage}`,
-          tool_call_id: "analyze_tp_sl_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -31,14 +30,7 @@ export async function analyzePromptLeverageUpdatesNode(state: GraphStateType): P
 
     if (!allPerpMetadata) {
       return {
-        error: "No perpetual metadata available for leverage analysis",
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No perpetual metadata available for leverage analysis",
-            tool_call_id: "analyze_leverage_error_no_metadata"
-          })
-        ]
+        error: "No perpetual metadata available for leverage analysis"
       };
     }
 
@@ -77,9 +69,10 @@ Return JSON with leverageUpdates array containing symbol and leverage pairs for 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano", 
+      reasoning: { effort: "low" },
       input: [
+        ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },
-        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(LeverageAnalysisSchema, "leverage_analysis")
@@ -117,26 +110,11 @@ Leverage Analysis
 
       return {
         pendingLeverageUpdates: updatedPendingLeverageUpdates,
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: content + `✅ Ready for leverage updates: ${leverageList}`,
-            tool_call_id: "analyze_leverage_success"
-          })
-        ]
       };
     }
 
     // No leverage updates found - don't return pendingLeverageUpdates field
-    return {
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: content + 'ℹ️ No leverage updates needed',
-          tool_call_id: "analyze_leverage_success"
-        })
-      ]
-    };
+    return {};
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -144,13 +122,6 @@ Leverage Analysis
 
     return {
       error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error analyzing leverage updates: ${errorMessage}`,
-          tool_call_id: "analyze_leverage_error"
-        })
-      ]
     };
   }
 }

@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -35,15 +34,7 @@ export async function analyzePromptCancelOrdersNode(state: GraphStateType): Prom
 
     // Early return if no open orders to analyze
     if (!openOrders || openOrders.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No open orders available for cancellation analysis",
-            tool_call_id: "analyze_cancel_orders_no_orders"
-          })
-        ]
-      };
+      return {};
     }
 
     console.log(`❌ Analyzing order cancellation requests from conversation`);
@@ -75,9 +66,10 @@ Return JSON with ordersToCancel array containing oid and reason for each order t
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
+      reasoning: { effort: "low" },
       input: [
+        ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },
-        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(CancelOrdersAnalysisSchema, "cancel_orders_analysis")
@@ -107,41 +99,19 @@ Cancel Orders Analysis
       ).join('\n');
 
       return {
-        pendingOrderCancellations: orderIds,
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: content + `✅ Ready for order cancellation:\n${cancelList}`,
-            tool_call_id: "analyze_cancel_orders_success"
-          })
-        ]
+        pendingOrderCancellations: orderIds
       };
     }
 
     // No cancellations found
-    return {
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: content + 'ℹ️ No order cancellations needed',
-          tool_call_id: "analyze_cancel_orders_success"
-        })
-      ]
-    };
+    return {};
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error analyzing order cancellations:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error analyzing order cancellations: ${errorMessage}`,
-          tool_call_id: "analyze_cancel_orders_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

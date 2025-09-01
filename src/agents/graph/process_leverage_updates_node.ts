@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import { SuccessResponse } from "@nktkas/hyperliquid";
 import { type GraphStateType } from "./shared_state.js";
 import MarketDataService from "../../services/marketdata.js";
@@ -11,15 +10,7 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
 
     // Early return if no pending leverage updates
     if (!pendingLeverageUpdates || Object.keys(pendingLeverageUpdates).length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No pending leverage updates to process",
-            tool_call_id: "process_leverage_updates_no_pending"
-          })
-        ]
-      };
+      return {};
     }
 
     console.log(`🔧 Processing ${Object.keys(pendingLeverageUpdates).length} leverage updates`);
@@ -85,13 +76,6 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
     return {
       leverageUpdateResults: resultsRecord,
       pendingLeverageUpdates: finalPendingUpdates, // Keep only failed ones for potential retry / reporting
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content,
-          tool_call_id: "process_leverage_updates_success"
-        })
-      ]
     };
 
   } catch (error) {
@@ -99,14 +83,7 @@ export async function processLeverageUpdatesNode(state: GraphStateType): Promise
     console.error(`❌ Error processing leverage updates:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error processing leverage updates: ${errorMessage}`,
-          tool_call_id: "process_leverage_updates_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

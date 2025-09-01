@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -26,14 +25,7 @@ export async function analyzePromptSymbolsNode(state: GraphStateType): Promise<{
 
     if (!allPerpMetadata) {
       return {
-        error: "No perpetual metadata available for symbol analysis",
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No perpetual metadata available for symbol analysis",
-            tool_call_id: "analyze_symbols_error_no_metadata"
-          })
-        ]
+        error: "No perpetual metadata available for symbol analysis"
       };
     }
 
@@ -70,9 +62,10 @@ Identify ALL symbols that are explicitly mentioned or clearly implied in the inp
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
       model: "gpt-5-nano",
+      reasoning: { effort: "low" },
       input: [
+        ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },
-        ...mapMessagesToOpenAI(state.messages)
       ],
       text: {
         format: zodTextFormat(SymbolsAnalysisSchema, "symbols_analysis")
@@ -109,41 +102,19 @@ Symbols Analysis
 
       return {
         mentionedSymbols: mentionedSymbols,
-        currentPrices: updatedCurrentPrices,
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: content + `✅ Ready for price fetching for: ${symbolsList}`,
-            tool_call_id: "analyze_symbols_success"
-          })
-        ]
+        currentPrices: updatedCurrentPrices
       };
     }
 
     // No symbols found - don't return currentPrices field
-    return {
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: content + 'ℹ️ No symbols found for price fetching',
-          tool_call_id: "analyze_symbols_success"
-        })
-      ]
-    };
+    return {};
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error(`❌ Error analyzing symbols:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error analyzing symbols: ${errorMessage}`,
-          tool_call_id: "analyze_symbols_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }

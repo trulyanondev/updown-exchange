@@ -1,4 +1,3 @@
-import { ToolMessage } from "@langchain/core/messages";
 import { type GraphStateType } from "./shared_state.js";
 import { executeBulkOrders } from "./utils/bulk-order-execution.js";
 
@@ -9,15 +8,7 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
 
     // Early return if no pending orders
     if (!pendingOrders || pendingOrders.length === 0) {
-      return {
-        messages: [
-          ...state.messages,
-          new ToolMessage({
-            content: "No pending orders to execute",
-            tool_call_id: "execute_orders_no_pending"
-          })
-        ]
-      };
+      return {};
     }
 
     // Execute orders using shared helper function with shared exchange client
@@ -26,13 +17,6 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
     return {
       orderCreationResults: execution.results,
       pendingOrders: undefined,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: execution.content,
-          tool_call_id: "execute_orders_success"
-        })
-      ]
     };
 
   } catch (error) {
@@ -40,14 +24,7 @@ export async function executeOrdersNode(state: GraphStateType): Promise<Partial<
     console.error(`❌ Error executing orders:`, error);
 
     return {
-      error: errorMessage,
-      messages: [
-        ...state.messages,
-        new ToolMessage({
-          content: `Error executing orders: ${errorMessage}`,
-          tool_call_id: "execute_orders_error"
-        })
-      ]
+      error: errorMessage
     };
   }
 }
