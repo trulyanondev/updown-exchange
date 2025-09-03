@@ -1,6 +1,5 @@
 // Export all LangGraph nodes for easy importing
 export { getPerpInfoNode, perpInfoNodeConfig } from './get_perp_info_node.js';
-export { getCurrentPriceNode, currentPriceNodeConfig } from './get_current_price_node.js';
 export { analyzePromptLeverageUpdatesNode, analyzePromptLeverageUpdatesNodeConfig } from './analyze_prompt_leverage_updates_node.js';
 export { analyzePromptRegularOrdersNode, analyzePromptRegularOrdersNodeConfig } from './analyze_prompt_regular_orders_node.js';
 export { analyzePromptTpSlNode, analyzePromptTpSlNodeConfig } from './analyze_prompt_tp_sl_node.js';
