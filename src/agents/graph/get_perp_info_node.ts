@@ -23,6 +23,8 @@ export async function getPerpInfoNode(state: GraphStateType): Promise<Partial<Gr
     console.log(`✅ Retrieved perpetual metadata for ${symbolCount} symbols`);
     console.log(`✅ Retrieved portfolio data: ${positionCount} positions, ${openOrderCount} open orders`);
 
+    console.log(`🔍 Current tokens:`, Object.keys(allPerpMetadata).join(', '));
+
     return {
       allPerpMetadata,
       currentPrices: currentPerpPrices,
