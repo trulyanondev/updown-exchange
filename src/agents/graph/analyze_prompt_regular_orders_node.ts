@@ -145,6 +145,8 @@ Regular Orders Analysis
         const nominalFinalPrice = isMarketOrder ? marketPrice : (order.price.value ?? marketPrice);
         const adjustedFinalPrice = isMarketOrder ? adjustedMarketPrice : (order.price.value ?? adjustedMarketPrice);
 
+        console.log(`🔍 Asset order for ${order.symbol}: ${nominalFinalPrice} ${adjustedFinalPrice} assetId: ${metadata.assetId}`);
+
         if (nominalFinalPrice !== 0) {
           let size = order.amount.type === "usd" ? (order.amount.value / nominalFinalPrice) : order.amount.value;
       
@@ -158,6 +160,7 @@ Regular Orders Analysis
             assetId: metadata.assetId,
             isBuy: order.isBuy,
             price: adjustedFinalPrice.toString(),
+            type: order.price.type === "limit" ? "limit" : "market",
             size: size.toString(),
             reduceOnly: false,
             orderType: { 
@@ -170,10 +173,6 @@ Regular Orders Analysis
           pendingOrders.push(tradingParams);
         }
       }
-
-      const ordersList = orders.map(o => 
-        `  • ${o.symbol}: ${o.isBuy ? 'BUY' : 'SELL'} ${o.amount.type === 'usd' ? '$' + o.amount.value : o.amount.value + ' tokens'} ${o.price.type === 'limit' ? 'at $' + o.price.value : 'at market'}`
-      ).join('\n');
 
       return {
         pendingOrders

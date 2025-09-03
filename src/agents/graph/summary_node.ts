@@ -62,7 +62,7 @@ ${leverageUpdatesCount > 0 ? `- Processed ${leverageUpdatesCount} leverage updat
 ${orderResultsCount > 0 ? `- Processed ${orderResultsCount} orders (${successfulRegularOrders.length} successful, ${failedRegularOrders.length} failed)` : '- No orders were processed'}
 ${tpslResultsCount > 0 ? `- Processed ${tpslResultsCount} TP/SL orders (${successfulTpSlOrders.length} successful, ${failedTpSlOrders.length} failed)` : '- No TP/SL orders were processed'}
 ${orderCancellationResultsCount > 0 ? `- Processed ${orderCancellationResultsCount} order cancellations (${successfulOrderCancellations.length} successful, ${failedOrderCancellations.length} failed)` : '- No order cancellations were performed'}
-Order Results: ${orderCreationResults ? JSON.stringify(orderCreationResults, null, 2) : 'None processed'}
+Order Results: ${orderCreationResults ? Object.values(orderCreationResults).map((result) => result.message).join(', ') : 'None processed'}
 Cancel Order Results: ${orderCancellationResults ? JSON.stringify(orderCancellationResults, null, 2) : 'None performed'}
 Take Profit/Stop Loss Results: ${tpslResults ? JSON.stringify(tpslResults, null, 2) : 'None performed'}
 Leverage Update Results: ${leverageUpdateResults ? JSON.stringify(leverageUpdateResults, null, 2) : 'None performed'}
@@ -102,8 +102,6 @@ Provide your response:`;
       { role: "system", content: summaryPrompt },
       ...mapMessagesToOpenAI(state.messages)
     ];
-
-    console.log(`🔍 Summary messages:`, state.messages);
 
     // Call GPT for summary generation
     const response = await openai.responses.parse({

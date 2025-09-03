@@ -72,12 +72,12 @@ export const GraphState = Annotation.Root({
     default: () => undefined
   }),
   // Results of order creation operations
-  orderCreationResults: Annotation<Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }> | undefined>({
+  orderCreationResults: Annotation<Record<string, { success: boolean; message: string; }> | undefined>({
     reducer: (x, y) => ({ ...x, ...y }),
     default: () => undefined
   }),
   // Results of TP/SL order creation operations
-  tpslResults: Annotation<Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }> | undefined>({
+  tpslResults: Annotation<Record<string, { success: boolean; message: string; }> | undefined>({
     reducer: (x, y) => ({ ...x, ...y }),
     default: () => undefined
   }),

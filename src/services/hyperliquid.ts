@@ -1,4 +1,4 @@
-import { ExchangeClient, HttpTransport, OrderParams, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse, CancelSuccessResponse } from '@nktkas/hyperliquid';
+import { ExchangeClient, HttpTransport, OrderParams, OrderSuccessResponse, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse, CancelSuccessResponse } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
 
 class HyperliquidService {
@@ -25,6 +25,19 @@ class HyperliquidService {
 
     const orderParams: { orders: OrderParams[]; grouping: 'na' | 'normalTpsl' | 'positionTpsl' } = {
       orders: [params],
+      grouping: 'na'
+    };
+
+    return await exchangeClient.order(orderParams);
+  }
+
+  /**
+   * Place an order on Hyperliquid
+   */
+  static async createBulkOrders(exchangeClient: ExchangeClient, params: OrderParams[]): Promise<OrderSuccessResponse> {
+
+    const orderParams: { orders: OrderParams[]; grouping: 'na' | 'normalTpsl' | 'positionTpsl' } = {
+      orders: params,
       grouping: 'na'
     };
 

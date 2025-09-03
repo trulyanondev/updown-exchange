@@ -1,7 +1,6 @@
-import { OrderResponse } from "@nktkas/hyperliquid";
+import { OrderSuccessResponse } from "@nktkas/hyperliquid";
 import TradingService, { TradingOrderParams } from "../../../services/trading.js";
-import HyperliquidService from "../../../services/hyperliquid.js";
-
+import MarketDataService from "../../../services/marketdata.js";
 import { ExchangeClient } from "@nktkas/hyperliquid";
 
 // Helper function for bulk order execution shared between nodes
@@ -10,77 +9,79 @@ export async function executeBulkOrders(
   exchangeClient: ExchangeClient,
   orderType: string = "orders"
 ): Promise<{
-  successful: number;
-  failed: number;
-  results: Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }>;
-  content: string;
+  results: Record<string, { success: boolean; message: string; }>;
 }> {
   console.log(`📋 Executing ${orders.length} ${orderType}`);
 
-  // Use the provided shared ExchangeClient to prevent nonce conflicts
-
-  // Process all orders concurrently
-  const orderExecutionPromises = orders.map(async (tradingOrderParams, index) => {
-    try {
-      console.log(`📝 Executing ${orderType} ${index + 1}:`, tradingOrderParams);
-
-      // Execute order through TradingService
-      const result: OrderResponse = await TradingService.createOrder(exchangeClient, tradingOrderParams);
-
-      console.log(`✅ ${orderType} execution successful:`, result);
-      
-      return [index.toString(), result];
-      
-    } catch (error) {
-      console.error(`❌ ${orderType} execution failed:`, error);
-      return [index.toString(), error instanceof Error ? error : new Error(String(error))];
-    }
-  });
-
-  // Wait for all order executions to complete
-  const orderExecutionResults = await Promise.all(orderExecutionPromises);
-  
-  // Separate successful results from errors
-  const successfulResults = orderExecutionResults.filter(([_, result]) => !(result instanceof Error)) as [string, OrderResponse][];
-  const failedResults = orderExecutionResults.filter(([_, result]) => result instanceof Error) as [string, Error][];
-  
-  // Count successes and failures
-  const successful = successfulResults.length;
-  const failed = failedResults.length;
-  
-  console.log(`📊 ${orderType} execution summary: ${successful} successful, ${failed} failed`);
-    
-  const failedOrders = failedResults
-    .map(([orderKey, error]) => `❌ Order ${orderKey}: ${error.message}`)
-    .join('\n');
-
-  const content = `Summary: ${successful}/${successful + failed} ${orderType} executed${failed > 0 ? ` (${failed} failed)` : ' successfully'}${failed > 0 ? `\n\nFailed:\n${failedOrders}` : ''}`;
-
   // For order creation results, we store both successful and failed results
-  const allOrderResults: Record<string, { success: boolean; message: string; response?: OrderResponse; error?: string }> = {};
-  
-  // Add successful results
-  successfulResults.forEach(([orderKey, response]) => {
-    allOrderResults[orderKey] = {
-      success: true,
-      message: `${orderType} executed successfully`,
-      response: response
-    };
-  });
-  
-  // Add failed results
-  failedResults.forEach(([orderKey, error]) => {
-    allOrderResults[orderKey] = {
-      success: false,
-      message: `${orderType} execution failed`,
-      error: error.message
-    };
-  });
+  const allOrderResults: Record<string, { success: boolean; message: string; }> = {};
+
+  // Get metadata for symbol lookup
+  const universeDict = await MarketDataService.getPerpetualsMetadata();
+
+  // Process all orders 
+  try {
+    const result: OrderSuccessResponse = await TradingService.createBulkOrders(exchangeClient, orders);
+    
+    // Process each order result
+    for (const [i, order] of orders.entries()) {
+      const orderResult = result.response.data.statuses[i];
+      
+      // Find the symbol for this assetId
+      const metadata = Object.values(universeDict).find(meta => meta.assetId === order.assetId);
+      const symbol = metadata?.name ?? "Unknown";
+      
+      if (orderResult && 'resting' in orderResult) {
+        // Order was placed successfully and is resting (open order)
+
+        let message = '';
+        if (order.type === 'takeProfit') { 
+          message = `Take profit order of ${symbol} placed at $${order.price} and resting.`;
+        } else if (order.type === 'stopLoss') {
+          message = `Stop loss order of ${symbol} placed at $${order.price} and resting.`;
+        } else if (order.type === 'market') {
+          message = `Market order of ${symbol} placed at $${order.price} and resting.`;
+        } else if (order.type === 'limit') {
+          message = `Limit order of ${symbol} placed at $${order.price} and resting.`;
+        }
+
+        allOrderResults[symbol] = {
+          success: true,
+          message: message,
+        };
+      } else if (orderResult && 'filled' in orderResult) {
+        // Order was filled immediately
+        allOrderResults[symbol] = {
+          success: true,
+          message: `${order.isBuy ? "Buy long" : "Sell short"} order for ${orderResult.filled.totalSz} of ${symbol} filled at $${orderResult.filled.avgPx}`
+        };
+      } else {
+        // Unknown status
+        allOrderResults[symbol] = {
+          success: false,
+          message: "Unknown order status " + orderResult,
+        };
+      }
+    }
+  } catch (error) {
+    console.error(`❌ ${orderType} execution failed:`, error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    
+    // Mark all orders as failed if the bulk operation failed
+    for (const order of orders) {
+      const metadata = Object.values(universeDict).find(meta => meta.assetId === order.assetId);
+      const symbol = metadata?.name || `Asset${order.assetId}`;
+      
+      allOrderResults[symbol] = {
+        success: false,
+        message: `Bulk order execution failed: ${errorMessage}`
+      };
+    }
+  }
+
+  console.log(`🔍 All order results:`, allOrderResults);
 
   return {
-    successful,
-    failed,
     results: allOrderResults,
-    content
   };
 }
