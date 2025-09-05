@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import PrivyService from './services/privy.js'
 import TradingService, { TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
 import HyperliquidService from './services/hyperliquid.js';
@@ -246,6 +248,119 @@ app.post('/api/chat', authenticateUser, async (req, res) => {
   }
 });
 
+// Coinbase session token endpoint
+app.post('/api/coinbase/session', authenticateUser, async (req, res) => {
+  try {
+    const { addresses, assets } = req.body;
+
+    if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
+      return res.status(400).json({ 
+        error: 'Invalid request. Expected: { "addresses": ["wallet_address"], "assets": ["asset_list"] }' 
+      });
+    }
+
+    // Get Coinbase CDP API credentials from environment
+    const COINBASE_CDP_API_KEY = process.env.COINBASE_CDP_API_KEY;
+    const COINBASE_CDP_PRIVATE_KEY = process.env.COINBASE_CDP_PRIVATE_KEY;
+    
+    if (!COINBASE_CDP_API_KEY || !COINBASE_CDP_PRIVATE_KEY) {
+      return res.status(500).json({ 
+        error: 'Coinbase CDP API credentials not configured' 
+      });
+    }
+
+    // Handle ECDSA private key format (ES256 required by Coinbase CDP)
+    let privateKeyPem: string;
+    try {
+      if (COINBASE_CDP_PRIVATE_KEY.includes('-----BEGIN')) {
+        // Already in PEM format
+        privateKeyPem = COINBASE_CDP_PRIVATE_KEY.replace(/\\n/g, '\n');
+      } else {
+        // ECDSA key - wrap in proper PEM format
+        const cleanKey = COINBASE_CDP_PRIVATE_KEY.replace(/\s+/g, '');
+        const keyLines = cleanKey.match(/.{1,64}/g) || [cleanKey];
+        privateKeyPem = `-----BEGIN EC PRIVATE KEY-----\n${keyLines.join('\n')}\n-----END EC PRIVATE KEY-----`;
+      }
+    } catch (error) {
+      console.error('Error formatting private key:', error);
+      return res.status(500).json({ 
+        error: 'Invalid private key format' 
+      });
+    }
+
+    // Generate JWT token for Coinbase CDP API authentication with ES256 (ECDSA)
+    const now = Math.floor(Date.now() / 1000);
+    const nonce = crypto.randomBytes(16).toString('hex');
+    
+    const jwtPayload = {
+      iss: "coinbase-cloud",
+      sub: COINBASE_CDP_API_KEY,
+      iat: now,
+      exp: now + 120, // 2 minutes from now
+      uri: "POST api.developer.coinbase.com/onramp/v1/token",
+      nonce: nonce
+    };
+
+    const jwtToken = jwt.sign(jwtPayload, privateKeyPem, { 
+      algorithm: 'ES256',
+      header: { 
+        alg: 'ES256',
+        kid: COINBASE_CDP_API_KEY,
+        nonce: nonce
+      }
+    });
+
+    // Call Coinbase CDP API to create session token
+    const response = await fetch('https://api.developer.coinbase.com/onramp/v1/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${jwtToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        addresses,
+        assets
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Coinbase API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    console.log('Coinbase session token:', data);
+
+    return res.status(200).json({ 
+      success: true,
+      token: data.token 
+    });
+  } catch (error) {
+    console.error('Coinbase session token endpoint error:', error);
+    
+    // Handle JWT errors
+    if (error instanceof Error && error.message.includes('jwt')) {
+      return res.status(500).json({ 
+        error: 'Failed to generate authentication token',
+        details: error.message 
+      });
+    }
+    
+    // Handle Coinbase API errors
+    if (error instanceof Error && error.message.includes('Coinbase API error')) {
+      return res.status(502).json({ 
+        error: 'Coinbase API request failed',
+        details: error.message 
+      });
+    }
+    
+    return res.status(500).json({ 
+      error: 'Failed to generate session token', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -255,7 +370,9 @@ app.get('/', (req, res) => {
       health: '/health',
       createOrder: '/api/create_order',
       updateLeverage: '/api/update_leverage',
-      prompt: '/api/prompt'
+      prompt: '/api/prompt',
+      chat: '/api/chat',
+      coinbaseSession: '/api/coinbase/session'
     }
   });
 });
