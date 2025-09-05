@@ -305,8 +305,7 @@ app.post('/api/coinbase/session', authenticateUser, async (req, res) => {
       algorithm: 'ES256',
       header: { 
         alg: 'ES256',
-        kid: COINBASE_CDP_API_KEY,
-        nonce: nonce
+        kid: COINBASE_CDP_API_KEY
       }
     });
 
@@ -328,9 +327,7 @@ app.post('/api/coinbase/session', authenticateUser, async (req, res) => {
     }
 
     const data = await response.json();
-    
-    console.log('Coinbase session token:', data);
-
+  
     return res.status(200).json({ 
       success: true,
       token: data.token 

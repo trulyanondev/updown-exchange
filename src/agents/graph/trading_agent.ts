@@ -6,13 +6,11 @@ import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import HyperliquidService from "../../services/hyperliquid.js";
 import {
   getPerpInfoNode,
-  getCurrentPriceNode,
   processLeverageUpdatesNode,
   executeOrdersNode,
   executeTpSlOrdersNode,
   cancelOrdersNode,
   summaryNode,
-  analyzePromptSymbolsNode,
   analyzePromptLeverageUpdatesNode,
   analyzePromptRegularOrdersNode,
   analyzePromptTpSlNode,
@@ -41,12 +39,11 @@ export interface AgentResponse {
  *
  * Workflow Steps:
  * 1. getPerpInfoNode - Fetch all perpetual contract metadata
- * 2a. analyzePromptSymbolsNode - Analyze user input to identify symbols
- * 2b. analyzePromptLeverageUpdatesNode - Analyze user input for leverage updates
- * 3. getCurrentPriceNode - Fetch current prices for symbols that need them
- * 4. processLeverageUpdatesNode - Update leverage for symbols that need it
- * 5. analyzePromptRegularOrdersNode - Analyze and convert regular orders to TradingOrderParams
- * 6. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
+ * 2. analyzePromptLeverageUpdatesNode - Analyze user input for leverage updates
+ * 3. analyzePromptRegularOrdersNode - Analyze and convert regular orders to TradingOrderParams
+ * 4. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
+ * 5. analyzePromptCancelOrdersNode - Analyze user input for order cancellations
+ * 6. processLeverageUpdatesNode - Update leverage for symbols that need it
  * 7. executeOrdersNode - Execute all pending regular orders
  * 8. executeTpSlOrdersNode - Execute all pending TP/SL orders after regular orders
  * 9. cancelOrdersNode - Cancel all pending order cancellations

@@ -143,6 +143,7 @@ TP/SL Analysis
 
         // Convert to TradingOrderParams
         const tradingParams: TradingOrderParams = {
+          type: tpsl.type === "take_profit" ? "takeProfit" : "stopLoss",
           assetId: metadata.assetId,
           isBuy,
           price: tpsl.trigger_price.toString(),
