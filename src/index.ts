@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import PrivyService from './services/privy.js'
+import AlchemyService from './services/alchemy.js'
 import TradingService, { TradingOrderSchema, TradingLeverageSchema } from './services/trading.js';
 import HyperliquidService from './services/hyperliquid.js';
 import { LangGraphTradingAgent } from './agents/graph/index.js';
@@ -55,6 +56,7 @@ async function authenticateUser(req: express.Request, res: express.Response, nex
     }
     
     res.status(401).json({ error: 'Authentication failed' });
+    return;
   }
 }
 
@@ -358,6 +360,36 @@ app.post('/api/coinbase/session', authenticateUser, async (req, res) => {
   }
 });
 
+// Alchemy webhook endpoint for monitoring wallet activity
+app.post('/api/webhook/wallet-activity', express.json(), async (req, res) => {
+  try {
+    // Verify webhook signature for security
+    const signature = req.headers['x-alchemy-signature'] as string;
+    if (!AlchemyService.verifyWebhookSignature(req.body, signature)) {
+      console.error('Invalid webhook signature');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const { webhookId, id: notificationId, createdAt, type, event } = req.body;
+    
+    console.log('Alchemy webhook received:', {
+      webhookId,
+      notificationId,
+      createdAt,
+      type,
+      activityCount: event?.activity?.length || 0
+    });
+
+    // Process webhook activity using the service
+    await AlchemyService.processWebhookActivity(event);
+
+    return res.status(200).json({ success: true, processed: true });
+  } catch (error) {
+    console.error('Alchemy webhook processing error:', error);
+    return res.status(500).json({ error: 'Error processing webhook' });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -369,7 +401,8 @@ app.get('/', (req, res) => {
       updateLeverage: '/api/update_leverage',
       prompt: '/api/prompt',
       chat: '/api/chat',
-      coinbaseSession: '/api/coinbase/session'
+      coinbaseSession: '/api/coinbase/session',
+      alchemyWebhook: '/api/webhook/wallet-activity',
     }
   });
 });
