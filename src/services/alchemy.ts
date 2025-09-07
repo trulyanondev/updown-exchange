@@ -4,12 +4,6 @@ import PrivyService from './privy.js';
 import { User } from '@privy-io/server-auth';
 import TransferService from './transfer.js';
 
-// Initialize Alchemy SDK for Arbitrum Mainnet
-const alchemy = new Alchemy({
-  apiKey: process.env.ALCHEMY_API_KEY!,
-  network: Network.ARB_MAINNET,
-});
-
 class AlchemyService {
 
   static usdcArbContract = "0xaf88d065e77c8cc2239327c5edb3a432268e5831" as `0x${string}`;
@@ -41,7 +35,7 @@ class AlchemyService {
   /**
    * Process incoming transfer notification
    */
-  static async handleIncomingTransfer(user: User, usdcValue: number, address: `0x${string}`): Promise<void> {
+  static async handleIncomingUSDCArbTransfer(user: User, address: `0x${string}`): Promise<void> {
     const wallet = PrivyService.getDelegatedWalletForUser(user, address);
 
     if (!wallet) {
@@ -57,7 +51,7 @@ class AlchemyService {
       fromWallet: wallet,
       tokenContractAddress: AlchemyService.usdcArbContract,
       network: Network.ARB_MAINNET,
-      amount: null
+      amount: null // send full balance
     });
   }
 
@@ -80,12 +74,10 @@ class AlchemyService {
         const userAddress = activity.toAddress;
         const user = await PrivyService.getClient().getUserByWalletAddress(userAddress);
         if (user) {
-          await this.handleIncomingTransfer(user, parseFloat(activity.value || '0'), userAddress as `0x${string}`);
+          await this.handleIncomingUSDCArbTransfer(user, userAddress as `0x${string}`);
         } else {
           throw new Error('User not found for webhook activity token transfer address: ' + userAddress);
         }
-      } else {
-        console.log('⛔️ Received something other than USDC Arbitrum token transfer: ' + activity.asset + ' ' + activity.rawContract + ' ' + activity.value);
       }
     }
   }

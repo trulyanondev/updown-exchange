@@ -4,7 +4,6 @@ import { Network } from 'alchemy-sdk';
 import { WalletWithMetadata } from '@privy-io/server-auth';
 import PrivyService from './privy.js';
 
-
 export interface TransferParams {
   toAddress: `0x${string}`;
   fromWallet: WalletWithMetadata;
