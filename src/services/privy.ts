@@ -1,4 +1,4 @@
-import { PrivyClient, WalletWithMetadata } from '@privy-io/server-auth';
+import { PrivyClient, WalletWithMetadata, User } from '@privy-io/server-auth';
 
 class PrivyService {
 
@@ -24,6 +24,10 @@ class PrivyService {
 
   static async getDelegatedWallet(userId: string, address: `0x${string}` | undefined = undefined): Promise<WalletWithMetadata | undefined> {
     const user = await PrivyService.getClient().getUserById(userId);
+    return PrivyService.getDelegatedWalletForUser(user, address);
+  }
+
+  static getDelegatedWalletForUser(user: User, address: `0x${string}` | undefined = undefined): WalletWithMetadata | undefined {
     return user.linkedAccounts?.find(
       account => account.type === 'wallet' && account.id && account.delegated === true && (address ? account.address === address : true)
     ) as WalletWithMetadata | undefined;

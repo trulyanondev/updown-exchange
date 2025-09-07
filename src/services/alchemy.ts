@@ -42,9 +42,11 @@ class AlchemyService {
    * Process incoming transfer notification
    */
   static async handleIncomingTransfer(user: User, usdcValue: number, address: `0x${string}`): Promise<void> {
-    const wallet = await PrivyService.getDelegatedWallet(user.id, address);
+    const wallet = PrivyService.getDelegatedWalletForUser(user, address);
 
     if (!wallet) {
+      console.log(`User: ${JSON.stringify(user)}`);
+
       throw new Error('Wallet not found for user: ' + user.id + ' and address: ' + address);
     }
 
