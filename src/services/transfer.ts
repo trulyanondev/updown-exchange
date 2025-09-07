@@ -444,6 +444,7 @@ class TransferService {
           
           // Execute the permit transaction using the smart account
           permitTxHash = await smartAccountClient.sendTransaction({
+            chain,
             to: tokenContractAddress,
             data: permitCallData,
             value: BigInt(0)
@@ -477,6 +478,7 @@ class TransferService {
       // Execute the transferFrom transaction using the smart account
       // This moves tokens directly from EOA to destination, with gas paid by the smart account
       const txHash = await smartAccountClient.sendTransaction({
+        chain,
         to: tokenContractAddress,
         data: transferFromData,
         value: BigInt(0)
