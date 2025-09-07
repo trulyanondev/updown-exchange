@@ -248,6 +248,8 @@ class TransferService {
       // Create a provider-like object for the smart account
       const provider = {
         request: async ({ method, params }: { method: string; params?: any[] }) => {
+          console.log(`[TransferService] Provider method: ${method}`, params ? `params count: ${params.length}` : 'no params');
+          
           if (method === 'eth_requestAccounts') {
             return [fromAddress];
           }
@@ -263,7 +265,10 @@ class TransferService {
               throw new Error('Invalid params for personal_sign');
             }
             const [message, address] = params;
-            return await wallet.signMessage(message);
+            console.log(`[TransferService] personal_sign - message length: ${message.length}, address: ${address}`);
+            const signature = await wallet.signMessage(message);
+            console.log(`[TransferService] personal_sign signature: ${signature}`);
+            return signature;
           }
           if (method === 'eth_sign') {
             // eth_sign params: [address, message]
@@ -271,22 +276,31 @@ class TransferService {
               throw new Error('Invalid params for eth_sign');
             }
             const [address, message] = params;
-            return await wallet.signMessage(message);
+            console.log(`[TransferService] eth_sign - address: ${address}, message length: ${message.length}`);
+            const signature = await wallet.signMessage(message);
+            console.log(`[TransferService] eth_sign signature: ${signature}`);
+            return signature;
           }
           if (method === 'eth_signTypedData_v4') {
             if (!params || params.length < 2) {
               throw new Error('Invalid params for signTypedData');
             }
             const [address, typedData] = params;
+            console.log(`[TransferService] eth_signTypedData_v4 - address: ${address}`);
             const parsedData = JSON.parse(typedData);
+            console.log(`[TransferService] Typed data domain:`, parsedData.domain);
+            console.log(`[TransferService] Typed data primaryType:`, parsedData.primaryType);
             
-            return await wallet.signTypedData({
+            const signature = await wallet.signTypedData({
               domain: parsedData.domain,
               types: parsedData.types,
               primaryType: parsedData.primaryType,
               message: parsedData.message
             });
+            console.log(`[TransferService] eth_signTypedData_v4 signature: ${signature}`);
+            return signature;
           }
+          console.error(`[TransferService] Unsupported method called: ${method}`, params);
           throw new Error(`Unsupported method: ${method}`);
         }
       };
