@@ -39,6 +39,19 @@ export class PrivyAbstractWallet {
     // Return the full signature as hex string (as expected by viem interface)
     return response.signature as `0x${string}`;
   }
+
+  async signMessage(message: string): Promise<`0x${string}`> {
+    const privyClient = PrivyService.getClient();
+    
+    // Use Privy's walletApi to sign a personal message
+    const response = await privyClient.walletApi.ethereum.signMessage({
+      walletId: this.walletId,
+      message: message
+    });
+
+    // Return the full signature as hex string
+    return response.signature as `0x${string}`;
+  }
 }
 
 export default PrivyAbstractWallet;

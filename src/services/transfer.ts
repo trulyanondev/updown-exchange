@@ -155,7 +155,7 @@ export interface TransferParams {
   fromWallet: WalletWithMetadata;
   tokenContractAddress: `0x${string}`;
   network: Network;
-  amount: number;
+  amount: number; // TODO: make optional, then if undefined, do a transfer of the entire balance of token
 }
 
 export interface TransferResult {
@@ -257,9 +257,21 @@ class TransferService {
           if (method === 'eth_chainId') {
             return `0x${chain.id.toString(16)}`;
           }
-          if (method === 'personal_sign' || method === 'eth_sign') {
-            // For personal signing, we'd need to implement this in PrivyAbstractWallet
-            throw new Error('Personal signing not implemented');
+          if (method === 'personal_sign') {
+            // personal_sign params: [message, address]
+            if (!params || params.length < 2) {
+              throw new Error('Invalid params for personal_sign');
+            }
+            const [message, address] = params;
+            return await wallet.signMessage(message);
+          }
+          if (method === 'eth_sign') {
+            // eth_sign params: [address, message]
+            if (!params || params.length < 2) {
+              throw new Error('Invalid params for eth_sign');
+            }
+            const [address, message] = params;
+            return await wallet.signMessage(message);
           }
           if (method === 'eth_signTypedData_v4') {
             if (!params || params.length < 2) {
