@@ -22,6 +22,14 @@ class HyperliquidService {
       isTestnet: process.env.NODE_ENV !== 'production'
     });
   }
+
+  static async transferToVault(exchangeClient: ExchangeClient, amount: number): Promise<SuccessResponse> {
+    return await exchangeClient.vaultTransfer({
+      vaultAddress: Constants.HLP_VAULT_ADDRESS,
+      isDeposit: true,
+      usd: amount
+    });
+  }
   
   /**
    * Place an order on Hyperliquid

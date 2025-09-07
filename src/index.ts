@@ -402,6 +402,51 @@ app.post('/api/webhook/wallet-activity', express.json(), async (req, res) => {
   }
 });
 
+// HLP vault deposit endpoint
+app.post('/api/vault/hlp/deposit', authenticateUser, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).userId;
+    
+    const wallet = await PrivyService.getDelegatedWallet(userId);
+    if (!wallet || !wallet.id) {
+      return res.status(400).json({ 
+        error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
+      });
+    }
+
+    const { amount } = req.body;
+    
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({ 
+        error: 'Invalid request. Expected: { "amount": <number> } where amount is in USDC' 
+      });
+    }
+
+    const exchangeClient = HyperliquidService.exchangeClient(wallet.id);
+    const result = await HyperliquidService.transferToVault(exchangeClient, amount);
+    
+    return res.status(200).json({ 
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('HLP vault deposit endpoint error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
+    if (error instanceof Error && error.message.includes('User does not have a delegated wallet')) {
+      return res.status(400).json({ error: 'User does not have a valid wallet' });
+    }
+    
+    return res.status(500).json({ 
+      error: 'Failed to deposit to HLP vault', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -415,6 +460,7 @@ app.get('/', (req, res) => {
       chat: '/api/chat',
       coinbaseSession: '/api/coinbase/session',
       alchemyWebhook: '/api/webhook/wallet-activity',
+      hlpVaultDeposit: '/api/vault/hlp/deposit',
     }
   });
 });
