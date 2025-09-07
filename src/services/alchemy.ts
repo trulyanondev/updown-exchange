@@ -72,7 +72,7 @@ class AlchemyService {
       // Check if this is an incoming transfer (external transaction with positive value)
       if (
         activity.category === 'token' && 
-        activity.rawContract.toLowerCase() === AlchemyService.usdcArbContract.toLowerCase() && 
+        activity.rawContract.address.toLowerCase() === AlchemyService.usdcArbContract.toLowerCase() && 
         parseFloat(activity.value || '0') > 0) 
       {
         const userAddress = activity.toAddress;
