@@ -65,21 +65,23 @@ class HyperliquidService {
       throw new Error('Wallet not found for user: ' + user.id + ' and address: ' + address);
     }
 
-    if (amount < Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT) {
+    const hyperliquidContract = Constants.HYPERLIQUID_CONTRACT;
+
+    const balance = await TransferService.getBalance(Network.ARB_MAINNET, Constants.USDC_ARB_CONTRACT, wallet);
+    
+    if (balance < Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT) {
       console.log(
-        `${address} deposited amount: (${amount}) less than minimum deposit amount: ${Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT}`
+        `${address} deposited amount: (${amount}).  Total balance ${balance} is less than minimum deposit amount: ${Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT}`
       );
       return;
     }
-
-    const hyperliquidContract = Constants.HYPERLIQUID_CONTRACT;
-
+    
     await TransferService.send({
       toAddress: hyperliquidContract,
       fromWallet: wallet,
       tokenContractAddress: Constants.USDC_ARB_CONTRACT,
       network: Network.ARB_MAINNET,
-      amount: null // send full balance
+      amount: balance // send full balance
     });
   }
 

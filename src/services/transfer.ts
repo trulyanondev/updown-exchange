@@ -9,7 +9,7 @@ export interface TransferParams {
   fromWallet: WalletWithMetadata;
   tokenContractAddress: `0x${string}`;
   network: Network;
-  amount?: number | null;
+  amount: number;
 }
 
 export interface TransferResult {
@@ -90,6 +90,41 @@ const networkToRpcUrl = (network: Network): string => {
 
 class TransferService {
   
+  private static async getDecimals(network: Network, tokenContractAddress: `0x${string}`): Promise<number> {
+    const publicClient = createPublicClient({
+      chain: networkToChain(network),
+      transport: http(networkToRpcUrl(network))
+    });
+    return await publicClient.readContract({
+      address: tokenContractAddress,
+      abi: ERC20_ABI,
+      functionName: 'decimals'
+    }) as number;
+  }
+
+  public static async getBalance(
+    network: Network, 
+    tokenContractAddress: `0x${string}`, 
+    fromWallet: WalletWithMetadata
+  ): Promise<number> {
+    
+    const publicClient = createPublicClient({
+      chain: networkToChain(network),
+      transport: http(networkToRpcUrl(network))
+    });
+
+    const decimals = await this.getDecimals(network, tokenContractAddress);
+
+    const balance = await publicClient.readContract({
+      address: tokenContractAddress,
+      abi: ERC20_ABI,
+      functionName: 'balanceOf',
+      args: [fromWallet.address as `0x${string}`]
+    });
+
+    return Number(balance) / 10 ** decimals;
+  }
+
   /**
    * Send tokens from one address to another using PrivyAbstractWallet for signing and Pimlico for gasless execution
    */
@@ -105,28 +140,9 @@ class TransferService {
         throw new Error('Wallet address is required');
       }
 
-      const publicClient = createPublicClient({
-        chain: networkToChain(network),
-        transport: http(networkToRpcUrl(network))
-      });
+      const decimals = await this.getDecimals(network, tokenContractAddress);
 
-      let transferAmount: bigint;
-
-      if (amount !== undefined && amount !== null) {
-        const decimals = await publicClient.readContract({
-          address: tokenContractAddress,
-          abi: ERC20_ABI,
-          functionName: 'decimals'
-        });
-        transferAmount = parseUnits(amount.toString(), decimals);
-      } else {
-        transferAmount = await publicClient.readContract({
-          address: tokenContractAddress,
-          abi: ERC20_ABI,
-          functionName: 'balanceOf',
-          args: [fromWallet.address as `0x${string}`]
-        }) as bigint;
-      }
+      const transferAmount = parseUnits(amount.toString(), decimals);
 
       if (transferAmount === 0n) {
         throw new Error('No balance to transfer');
