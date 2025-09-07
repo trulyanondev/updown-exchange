@@ -1,5 +1,10 @@
 import { ExchangeClient, HttpTransport, OrderParams, OrderSuccessResponse, OrderResponse, InfoClient, PerpsMeta, AllMids, SuccessResponse, CancelSuccessResponse } from '@nktkas/hyperliquid';
 import PrivyAbstractWallet from '../wallet/privy_abstract_wallet.js';
+import PrivyService from './privy.js';
+import { User } from '@privy-io/server-auth';
+import TransferService from './transfer.js';
+import Constants from '../constants/constants.js';
+import { Network } from 'alchemy-sdk';
 
 class HyperliquidService {
   private static transport: HttpTransport = new HttpTransport();
@@ -46,6 +51,34 @@ class HyperliquidService {
 
   static async cancelOrder(exchangeClient: ExchangeClient, assetId: number, oid: number): Promise<CancelSuccessResponse> {
     return await exchangeClient.cancel({ cancels: [{ a: assetId, o: oid }] });
+  }
+
+  /**
+   * Deposit USDC Arbitrum to Hyperliquid exchange
+   */
+  static async depositToHyperliquidExchange(user: User, address: `0x${string}`, amount: number): Promise<void> {
+    const wallet = PrivyService.getDelegatedWalletForUser(user, address);
+
+    if (!wallet) {
+      console.log(`User: ${JSON.stringify(user)}`);
+
+      throw new Error('Wallet not found for user: ' + user.id + ' and address: ' + address);
+    }
+
+    if (amount < Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT) {
+      console.log(`Amount: ${amount} is less than minimum deposit amount: ${Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT}`);
+      return;
+    }
+
+    const hyperliquidContract = Constants.HYPERLIQUID_CONTRACT;
+
+    await TransferService.send({
+      toAddress: hyperliquidContract,
+      fromWallet: wallet,
+      tokenContractAddress: Constants.USDC_ARB_CONTRACT,
+      network: Network.ARB_MAINNET,
+      amount: null // send full balance
+    });
   }
 
   /**

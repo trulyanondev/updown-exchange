@@ -40,7 +40,11 @@ class AlchemyService {
         const userAddress = activity.toAddress;
         const user = await PrivyService.getClient().getUserByWalletAddress(userAddress);
         if (user) {
-          await HyperliquidService.depositToHyperliquidExchange(user, userAddress as `0x${string}`);
+          await HyperliquidService.depositToHyperliquidExchange(
+            user,
+            userAddress as `0x${string}`,
+            parseFloat(activity.value || '0')
+          );
         } 
 
         // Ignore all other activity for now
