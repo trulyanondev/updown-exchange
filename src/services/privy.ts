@@ -29,7 +29,9 @@ class PrivyService {
 
   static getDelegatedWalletForUser(user: User, address: `0x${string}` | undefined = undefined): WalletWithMetadata | undefined {
     return user.linkedAccounts?.find(
-      account => account.type === 'wallet' && account.id && account.delegated === true && (address ? account.address === address : true)
+      account => account.type === 'wallet' && 
+      account.id && account.delegated === true && 
+      (address ? account.address.toLowerCase() === address.toLowerCase() : true)
     ) as WalletWithMetadata | undefined;
   }
 }
