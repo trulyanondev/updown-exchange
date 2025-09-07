@@ -1,21 +1,13 @@
 import { Alchemy, Network, WebhookType } from 'alchemy-sdk';
 import crypto from 'crypto';
+import PrivyService from './privy';
+import { User } from '@privy-io/server-auth';
 
 // Initialize Alchemy SDK for Arbitrum Mainnet
 const alchemy = new Alchemy({
   apiKey: process.env.ALCHEMY_API_KEY!,
   network: Network.ARB_MAINNET,
 });
-
-export interface IncomingTransfer {
-  toAddress: string;
-  fromAddress: string;
-  value: string;
-  hash: string;
-  blockNum: string;
-  asset: string;
-  rawContract?: any;
-}
 
 class AlchemyService {
   /**
@@ -45,58 +37,8 @@ class AlchemyService {
   /**
    * Process incoming transfer notification
    */
-  static async handleIncomingTransfer(transfer: IncomingTransfer): Promise<void> {
-    try {
-      console.log('Processing incoming transfer:', {
-        to: transfer.toAddress,
-        from: transfer.fromAddress,
-        value: transfer.value,
-        hash: transfer.hash,
-        asset: transfer.asset
-      });
-
-      // TODO: Find user by wallet address in your database
-      // const user = await getUserByWalletAddress(transfer.toAddress);
-      
-      // For now, just log the transfer details
-      console.log('✅ Incoming transfer detected:', {
-        recipient: transfer.toAddress,
-        sender: transfer.fromAddress,
-        amount: transfer.value,
-        txHash: transfer.hash,
-        blockNumber: transfer.blockNum,
-        asset: transfer.asset
-      });
-
-      // TODO: Implement your business logic here:
-      // - Update user balance
-      // - Send notification to user
-      // - Trigger any business logic (unlock features, etc.)
-      // - Store transaction record
-      
-      // Example implementation:
-      /*
-      if (user) {
-        // Update user's balance
-        await updateUserBalance(user.id, transfer.value);
-        
-        // Send notification to user
-        await notifyUser(user.id, {
-          type: 'incoming_transfer',
-          amount: transfer.value,
-          from: transfer.fromAddress,
-          txHash: transfer.hash,
-          asset: transfer.asset
-        });
-        
-        // Process any business logic
-        await processIncomingPayment(user.id, transfer);
-      }
-      */
-
-    } catch (error) {
-      console.error('Error handling incoming transfer:', error);
-    }
+  static async handleIncomingTransfer(user: User, usdcValue: Number): Promise<void> {
+    
   }
 
   /**
@@ -107,19 +49,24 @@ class AlchemyService {
       return;
     }
 
+    const usdcArbContract = "0xaf88d065e77c8cc2239327c5edb3a432268e5831";
+
     // Process each activity in the webhook
     for (const activity of event.activity) {
       // Check if this is an incoming transfer (external transaction with positive value)
-      if (activity.category === 'external' && parseFloat(activity.value || '0') > 0) {
-        await this.handleIncomingTransfer({
-          toAddress: activity.toAddress,
-          fromAddress: activity.fromAddress,
-          value: activity.value,
-          hash: activity.hash,
-          blockNum: activity.blockNum,
-          asset: activity.asset,
-          rawContract: activity.rawContract,
-        });
+      if (
+        activity.category === 'token' && 
+        activity.rawContract.toLowerCase() === usdcArbContract.toLowerCase() && 
+        parseFloat(activity.value || '0') > 0) 
+      {
+        const user = await PrivyService.getClient().getUserByWalletAddress(activity.toAddress);
+        if (user) {
+          await this.handleIncomingTransfer(user, parseFloat(activity.value || '0'));
+        } else {
+          throw new Error('User not found for webhook activity token transfer address: ' + activity.toAddress);
+        }
+      } else {
+        console.log('⛔️ Received something other than USDC Arbitrum token transfer: ' + activity.asset + ' ' + activity.rawContract + ' ' + activity.value);
       }
     }
   }
