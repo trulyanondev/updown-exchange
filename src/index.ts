@@ -405,7 +405,7 @@ app.post('/api/webhook/wallet-activity', express.json(), async (req, res) => {
       notificationId,
       createdAt,
       type,
-      activityCount: event?.activity?.length || 0
+      activity: JSON.stringify(event?.activity)
     });
 
     // Process webhook activity using the service
