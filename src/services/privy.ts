@@ -22,10 +22,10 @@ class PrivyService {
     return verifiedToken.userId;
   }
 
-  static async getDelegatedWallet(userId: string): Promise<WalletWithMetadata | undefined> {
+  static async getDelegatedWallet(userId: string, address: `0x${string}` | undefined = undefined): Promise<WalletWithMetadata | undefined> {
     const user = await PrivyService.getClient().getUserById(userId);
     return user.linkedAccounts?.find(
-      account => account.type === 'wallet' && account.id && account.delegated === true
+      account => account.type === 'wallet' && account.id && account.delegated === true && (address ? account.address === address : true)
     ) as WalletWithMetadata | undefined;
   }
 }
