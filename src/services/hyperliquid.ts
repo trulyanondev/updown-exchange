@@ -27,7 +27,7 @@ class HyperliquidService {
     return await exchangeClient.vaultTransfer({
       vaultAddress: Constants.HLP_VAULT_ADDRESS,
       isDeposit: true,
-      usd: amount
+      usd: amount * 1_000_000 // convert to USDC * 1_000_000 for exchange client
     });
   }
   
