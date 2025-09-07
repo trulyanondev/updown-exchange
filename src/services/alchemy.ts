@@ -1,58 +1,24 @@
-import { Alchemy, Network, WebhookType } from 'alchemy-sdk';
-import crypto from 'crypto';
 import PrivyService from './privy.js';
-import { User } from '@privy-io/server-auth';
-import TransferService from './transfer.js';
+import Constants from '../constants/constants.js';
+import HyperliquidService from './hyperliquid.js';
 
 class AlchemyService {
 
-  static usdcArbContract = "0xaf88d065e77c8cc2239327c5edb3a432268e5831" as `0x${string}`;
-
   /**
-   * Verify Alchemy webhook signature for security
+   * Verify webhook signature using Supabase function.  Returns true if the signature is valid, false otherwise.
    */
-  static verifyWebhookSignature(body: any, signature: string): boolean {
-    if (!signature || !process.env.ALCHEMY_WEBHOOK_SIGNING_KEY) {
-      return false;
-    }
-    
-    try {
-      const expectedSignature = crypto
-        .createHmac('sha256', process.env.ALCHEMY_WEBHOOK_SIGNING_KEY)
-        .update(JSON.stringify(body))
-        .digest('hex');
-      
-      return crypto.timingSafeEqual(
-        Buffer.from(signature, 'hex'),
-        Buffer.from(expectedSignature, 'hex')
-      );
-    } catch (error) {
-      console.error('Webhook signature verification error:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Process incoming transfer notification
-   */
-  static async handleIncomingUSDCArbTransfer(user: User, address: `0x${string}`): Promise<void> {
-    const wallet = PrivyService.getDelegatedWalletForUser(user, address);
-
-    if (!wallet) {
-      console.log(`User: ${JSON.stringify(user)}`);
-
-      throw new Error('Wallet not found for user: ' + user.id + ' and address: ' + address);
-    }
-
-    const hyperliquidContract = '0x2df1c51e09aecf9cacb7bc98cb1742757f163df7';
-
-    await TransferService.send({
-      toAddress: hyperliquidContract,
-      fromWallet: wallet,
-      tokenContractAddress: AlchemyService.usdcArbContract,
-      network: Network.ARB_MAINNET,
-      amount: null // send full balance
+  static async verifyWebhookSignature(webhookId: string, body: any, signature: string): Promise<boolean> {
+    const signatureResponse = await fetch('https://nefhbvdkknucokyoudxc.supabase.co/functions/v1/alchemy_webhook_signature', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Alchemy-Webhook-Id': webhookId
+      },
+      body: JSON.stringify(body)
     });
+
+    const { signature: expectedSignature } = await signatureResponse.json();
+    return expectedSignature == signature;
   }
 
   /**
@@ -68,16 +34,16 @@ class AlchemyService {
       // Check if this is an incoming transfer (external transaction with positive value)
       if (
         activity.category === 'token' && 
-        activity.rawContract.address.toLowerCase() === AlchemyService.usdcArbContract.toLowerCase() && 
+        activity.rawContract.address.toLowerCase() === Constants.USDC_ARB_CONTRACT.toLowerCase() && 
         parseFloat(activity.value || '0') > 0) 
       {
         const userAddress = activity.toAddress;
         const user = await PrivyService.getClient().getUserByWalletAddress(userAddress);
         if (user) {
-          await this.handleIncomingUSDCArbTransfer(user, userAddress as `0x${string}`);
-        } else {
-          throw new Error('User not found for webhook activity token transfer address: ' + userAddress);
-        }
+          await HyperliquidService.depositToHyperliquidExchange(user, userAddress as `0x${string}`);
+        } 
+
+        // Ignore all other activity for now
       }
     }
   }

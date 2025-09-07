@@ -377,27 +377,11 @@ app.post('/api/webhook/wallet-activity', express.json(), async (req, res) => {
       return res.status(400).json({ error: 'Missing webhookId in body' });
     }
 
-    // Verify webhook signature using Supabase function
-    const signatureResponse = await fetch('https://nefhbvdkknucokyoudxc.supabase.co/functions/v1/alchemy_webhook_signature', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Alchemy-Webhook-Id': webhookId
-      },
-      body: JSON.stringify(req.body)
-    });
+    const signatureIsValid = await AlchemyService.verifyWebhookSignature(webhookId, req.body, receivedSignature);
 
-    if (!signatureResponse.ok) {
-      console.error('Failed to verify webhook signature:', signatureResponse.status);
+    if (!signatureIsValid) {
+      console.error('Failed to verify webhook signature.  Possible invalid signature');
       return res.status(401).json({ error: 'Failed to verify signature' });
-    }
-
-    const { signature: expectedSignature } = await signatureResponse.json();
-    
-    // Compare signatures
-    if (receivedSignature !== expectedSignature) {
-      console.error('Invalid webhook signature');
-      return res.status(401).json({ error: 'Invalid signature' });
     }
     
     console.log('Alchemy webhook received:', {
