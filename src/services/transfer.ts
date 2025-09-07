@@ -169,7 +169,7 @@ class TransferService {
   /**
    * Send tokens from one address to another using PrivyAbstractWallet for signing and Pimlico for gasless execution
    */
-  public async send(params: TransferParams): Promise<TransferResult> {
+  public static async send(params: TransferParams): Promise<TransferResult> {
     const { toAddress, fromWallet, tokenContractAddress, network, amount } = params;
     const fromAddress = fromWallet.address as `0x${string}`;
 
@@ -499,4 +499,4 @@ class TransferService {
   }
 }
 
-export default new TransferService();
+export default TransferService;
