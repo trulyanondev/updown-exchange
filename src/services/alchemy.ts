@@ -1,8 +1,8 @@
 import { Alchemy, Network, WebhookType } from 'alchemy-sdk';
 import crypto from 'crypto';
-import PrivyService from './privy';
+import PrivyService from './privy.js';
 import { User } from '@privy-io/server-auth';
-import TransferService from './transfer';
+import TransferService from './transfer.js';
 
 // Initialize Alchemy SDK for Arbitrum Mainnet
 const alchemy = new Alchemy({

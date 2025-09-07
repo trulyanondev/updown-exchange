@@ -41,7 +41,7 @@
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "openai": "^5.16.0",
-    "permissionless": "^0.2.52",
+    "permissionless": "^0.2.56",
     "redis": "^5.8.2",
     "typescript": "^5.3.0",
     "viem": "^2.28.1",
@@ -61,7 +61,6 @@
     "node": ">=24.0.0"
   },
   "overrides": {
-    "ws": "^8.18.0",
-    "ox": "^0.6.7"
+    "ws": "^8.18.0"
   }
 }
