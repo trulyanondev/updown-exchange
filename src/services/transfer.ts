@@ -73,6 +73,22 @@ const networkToChain = (network: Network): Chain => {
   }
 }
 
+const networkToRpcUrl = (network: Network): string => {
+  let key = process.env.ALCHEMY_API_KEY!;
+  switch (network) {
+    case Network.ARB_MAINNET:
+      return `https://arb-mainnet.g.alchemy.com/v2/${key}`;
+    case Network.BASE_MAINNET:
+      return `https://base-mainnet.g.alchemy.com/v2/${key}`;
+    case Network.OPT_MAINNET:
+      return `https://opt-mainnet.g.alchemy.com/v2/${key}`;
+    case Network.ETH_MAINNET:
+      return `https://eth-mainnet.g.alchemy.com/v2/${key}`;
+    default:
+      throw new Error('Unsupported network');
+  }
+}
+
 class TransferService {
   
   /**
@@ -92,7 +108,7 @@ class TransferService {
 
       const publicClient = createPublicClient({
         chain: networkToChain(network),
-        transport: http(process.env.ALCHEMY_RPC_URL || `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`)
+        transport: http(networkToRpcUrl(network))
       });
 
       let transferAmount: bigint;
