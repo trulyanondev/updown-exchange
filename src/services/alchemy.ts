@@ -57,7 +57,7 @@ class AlchemyService {
       fromWallet: wallet,
       tokenContractAddress: AlchemyService.usdcArbContract,
       network: Network.ARB_MAINNET,
-      amount: usdcValue
+      amount: null
     });
   }
 

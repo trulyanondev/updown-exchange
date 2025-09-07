@@ -1,3 +1,4 @@
+import { EthereumSendTransactionInputType, EthereumSendTransactionResponseType, EthereumSignTransactionInputType, EthereumSignTransactionResponseType } from '@privy-io/server-auth';
 import PrivyService from '../services/privy.js';
 
 export class PrivyAbstractWallet {
@@ -6,7 +7,7 @@ export class PrivyAbstractWallet {
   constructor(walletId: string) {
     this.walletId = walletId;
   }
-
+  
   async signTypedData(params: {
     domain: {
       name: string;
