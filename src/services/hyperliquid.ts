@@ -66,7 +66,9 @@ class HyperliquidService {
     }
 
     if (amount < Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT) {
-      console.log(`Amount: ${amount} is less than minimum deposit amount: ${Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT}`);
+      console.log(
+        `${address} deposited amount: (${amount}) less than minimum deposit amount: ${Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT}`
+      );
       return;
     }
 
