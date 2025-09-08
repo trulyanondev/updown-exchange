@@ -13,6 +13,9 @@ import ChatService from './services/chat.js';
 import { AuthenticatedRequest } from './types/express.js';
 import { HumanMessage, BaseMessage, AIMessage } from '@langchain/core/messages';
 import { langchain_message } from './services/chat.js';
+import TransferService from './services/transfer.js';
+import { Network } from 'alchemy-sdk';
+import Constants from './constants/constants.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -447,6 +450,41 @@ app.post('/api/vault/hlp/deposit', authenticateUser, async (req, res) => {
   }
 });
 
+// Get pending deposits endpoint
+app.get('/api/deposits/pending', authenticateUser, async (req, res) => {
+  try {
+    const userId = (req as AuthenticatedRequest).userId;
+    
+    const wallet = await PrivyService.getDelegatedWallet(userId);
+    if (!wallet || !wallet.id) {
+      return res.status(400).json({ 
+        error: 'User does not have a delegated wallet. The user must delegate the embedded wallet for server signing'
+      });
+    }
+
+    const amount = await TransferService.getBalance(Network.ARB_MAINNET, Constants.USDC_ARB_CONTRACT, wallet);
+    
+    return res.status(200).json({ 
+      amount: amount.toString()
+    });
+  } catch (error) {
+    console.error('Get pending deposits endpoint error:', error);
+    
+    if (error instanceof Error && error.message.includes('Invalid authentication token')) {
+      return res.status(401).json({ error: 'Invalid authentication token' });
+    }
+    
+    if (error instanceof Error && error.message.includes('User does not have a delegated wallet')) {
+      return res.status(400).json({ error: 'User does not have a valid wallet' });
+    }
+    
+    return res.status(500).json({ 
+      error: 'Failed to get pending deposits', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -461,6 +499,7 @@ app.get('/', (req, res) => {
       coinbaseSession: '/api/coinbase/session',
       alchemyWebhook: '/api/webhook/wallet-activity',
       hlpVaultDeposit: '/api/vault/hlp/deposit',
+      pendingDeposits: '/api/deposits/pending',
     }
   });
 });
