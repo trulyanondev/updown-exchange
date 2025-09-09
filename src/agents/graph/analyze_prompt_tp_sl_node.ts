@@ -1,12 +1,9 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import TradingService, { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-
-const openai = new OpenAI();
+import LLMService from "../../services/llm.js";
 
 // Schema for TP/SL analysis
 const TakeProfitStopLossSchema = z.object({
@@ -83,19 +80,13 @@ Always extract the specific trigger price level from the user’s request.
 If no clear price is given → return no orders.
 `;
 
-    // Call OpenAI with structured output
-    const response = await openai.responses.parse({
-      model: "gpt-4.1-2025-04-14",
-      input: [
-        ...mapMessagesToOpenAI(state.messages),
-        { role: "system", content: analysisPrompt },
-      ],
-      text: {
-        format: zodTextFormat(TpSlAnalysisSchema, "tp_sl_analysis")
-      }
-    });
-
-    const analysis = response.output_parsed as TpSlAnalysis;
+    // Call Grok Code Fast 1 with structured output
+    const analysis = await LLMService.generateStructuredOutput(
+      analysisPrompt,
+      mapMessagesToOpenAI(state.messages),
+      TpSlAnalysisSchema,
+      "tp_sl_analysis"
+    );
 
     console.log(`🎯 TP/SL Analysis:`, analysis);
 

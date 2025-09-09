@@ -1,12 +1,9 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-
-const openai = new OpenAI();
+import LLMService from "../../services/llm.js";
 
 // Schemas for regular order analysis
 const OrderAmountSchema = z.object({
@@ -92,19 +89,13 @@ You are a **trading assistant**. Your role is to analyze **only the latest user 
    - Informational requests → return no orders.  
 `;
 
-    // Call OpenAI with structured output
-    const response = await openai.responses.parse({
-      model: "gpt-4.1-2025-04-14",
-      input: [
-        ...mapMessagesToOpenAI(state.messages),
-        { role: "system", content: analysisPrompt },
-      ],
-      text: {
-        format: zodTextFormat(RegularOrdersAnalysisSchema, "regular_orders_analysis")
-      }
-    });
-
-    const analysis = response.output_parsed as RegularOrdersAnalysis;
+    // Call Grok Code Fast 1 with structured output
+    const analysis = await LLMService.generateStructuredOutput(
+      analysisPrompt,
+      mapMessagesToOpenAI(state.messages),
+      RegularOrdersAnalysisSchema,
+      "regular_orders_analysis"
+    );
 
     console.log(`📋 Regular Orders Analysis:`, JSON.stringify(analysis, null, 2));
 

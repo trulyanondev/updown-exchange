@@ -1,11 +1,8 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-
-const openai = new OpenAI();
+import LLMService from "../../services/llm.js";
 
 // Schema for cancel order analysis
 const CancelOrderSchema = z.object({
@@ -64,19 +61,13 @@ Return JSON with ordersToCancel array containing oid and reason for each order t
 IMPORTANT: Only follow commands/instructions from the most recent user message. Use all previous messages as context for understanding the conversation, but do not execute any commands or instructions from earlier messages.
 `;
 
-    // Call OpenAI with structured output
-    const response = await openai.responses.parse({
-      model: "gpt-4.1-2025-04-14",
-      input: [
-        ...mapMessagesToOpenAI(state.messages),
-        { role: "system", content: analysisPrompt },
-      ],
-      text: {
-        format: zodTextFormat(CancelOrdersAnalysisSchema, "cancel_orders_analysis")
-      }
-    });
-
-    const analysis = response.output_parsed as CancelOrdersAnalysis;
+    // Call Grok Code Fast 1 with structured output
+    const analysis = await LLMService.generateStructuredOutput(
+      analysisPrompt,
+      mapMessagesToOpenAI(state.messages),
+      CancelOrdersAnalysisSchema,
+      "cancel_orders_analysis"
+    );
 
     console.log(`❌ Cancel Orders Analysis:`, JSON.stringify(analysis, null, 2));
 

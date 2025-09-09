@@ -59,10 +59,10 @@ class LangGraphTradingAgent {
     this.workflow = new StateGraph(GraphState)
       // Add nodes to the graph
       .addNode("get_perp_info", getPerpInfoNode)
-      // .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
+      .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
       .addNode("analyze_prompt_regular_orders", analyzePromptRegularOrdersNode)
-      // .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
-      // .addNode("analyze_prompt_cancel_orders", analyzePromptCancelOrdersNode)
+      .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
+      .addNode("analyze_prompt_cancel_orders", analyzePromptCancelOrdersNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
@@ -75,15 +75,15 @@ class LangGraphTradingAgent {
 
       // analyze user input concurrently for regular orders, TP/SL orders, leverage updates, and order cancellations
       .addEdge("get_perp_info", "analyze_prompt_regular_orders")
-      // .addEdge("get_perp_info", "analyze_prompt_tp_sl")
-      // .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
-      // .addEdge("get_perp_info", "analyze_prompt_cancel_orders")
+      .addEdge("get_perp_info", "analyze_prompt_tp_sl")
+      .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
+      .addEdge("get_perp_info", "analyze_prompt_cancel_orders")
 
       // process leverage updates, regular orders, TP/SL orders, and order cancellations
-      // .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
+      .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
       .addEdge("analyze_prompt_regular_orders", "process_leverage_updates")
-      // .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
-      // .addEdge("analyze_prompt_cancel_orders", "process_leverage_updates")
+      .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
+      .addEdge("analyze_prompt_cancel_orders", "process_leverage_updates")
 
       // execute regular orders, TP/SL orders, and cancel orders concurrently
       .addEdge("process_leverage_updates", "execute_orders")

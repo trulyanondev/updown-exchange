@@ -8,6 +8,8 @@ A modern TypeScript server built with Express.js for Hyperliquid trading integra
 - **Express.js** web framework with middleware pattern
 - **Privy Authentication** with JWT token verification
 - **Hyperliquid Trading** integration with delegated wallet signing
+- **Grok Code Fast 1** LLM integration for intelligent trading analysis
+- **LangGraph** workflow orchestration for trading decisions
 - **ES Modules** (ESM) support
 - **CORS** enabled for cross-origin requests
 - **Helmet** for security headers
@@ -22,6 +24,7 @@ A modern TypeScript server built with Express.js for Hyperliquid trading integra
 - npm or yarn package manager
 - Privy account with app credentials
 - Hyperliquid account for trading
+- xAI API key for Grok Code Fast 1 LLM
 
 ## 🛠️ Installation
 
@@ -46,6 +49,7 @@ Edit `.env` with your configuration:
 PORT=3001
 PRIVY_APP_ID=your_privy_app_id
 PRIVY_APP_SECRET=your_privy_app_secret
+XAI_API_KEY=your_xai_api_key_here
 NODE_ENV=development
 ```
 
@@ -95,7 +99,9 @@ Returns server information and available endpoints.
   "endpoints": {
     "health": "/health",
     "createOrder": "/api/create_order",
-    "updateLeverage": "/api/update_leverage"
+    "updateLeverage": "/api/update_leverage",
+    "tradingAgent": "/api/trading_agent",
+    "chat": "/api/chat"
   }
 }
 ```
@@ -208,6 +214,76 @@ Content-Type: application/json
 - `400 Bad Request` - Invalid leverage parameters or leverage value out of range (1-50)
 - `500 Internal Server Error` - Failed to update leverage
 
+### POST `/api/trading_agent`
+Process trading requests using the intelligent LangGraph trading agent with Grok Code Fast 1.
+
+**Headers:**
+```
+Authorization: Bearer <privy_jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "prompt": "buy $100 worth of BTC at market price"
+}
+```
+
+**Parameters:**
+- `prompt` (string): Natural language trading request
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "I've successfully executed a market buy order for $100 worth of BTC at $67,450.",
+  "actions": [...]
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid authentication token
+- `400 Bad Request` - User does not have a delegated wallet
+- `400 Bad Request` - Invalid prompt format
+- `500 Internal Server Error` - Failed to process trading prompt
+
+### POST `/api/chat`
+Chat with the trading agent with conversation context preservation.
+
+**Headers:**
+```
+Authorization: Bearer <privy_jwt_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "prompt": "what's the current BTC price?",
+  "thread_id": "optional_thread_id"
+}
+```
+
+**Parameters:**
+- `prompt` (string): Natural language message
+- `thread_id` (string, optional): Conversation thread ID for context preservation
+
+**Response:**
+```json
+{
+  "success": true,
+  "thread_id": "generated_or_provided_thread_id",
+  "message": "BTC is currently trading at $67,450."
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized` - Invalid authentication token
+- `400 Bad Request` - User does not have a delegated wallet
+- `400 Bad Request` - Invalid prompt format
+- `500 Internal Server Error` - Failed to process chat message
+
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -215,6 +291,7 @@ Content-Type: application/json
 - `PORT`: Server port (default: 3001)
 - `PRIVY_APP_ID`: Your Privy application ID
 - `PRIVY_APP_SECRET`: Your Privy application secret
+- `XAI_API_KEY`: Your xAI API key for Grok Code Fast 1 LLM
 - `NODE_ENV`: Environment (development/production)
 
 ### TypeScript Configuration
@@ -263,6 +340,8 @@ This server uses Privy for authentication and delegated wallet signing:
 - **PrivyService**: Handles JWT verification, user fetching, and wallet management
 - **HyperliquidService**: Manages trading operations and order placement
 - **PrivyAbstractWallet**: Adapter that implements Hyperliquid's AbstractWallet interface using Privy's signing API
+- **LLMService**: Centralized service for Grok Code Fast 1 LLM integration with structured output generation
+- **LangGraphTradingAgent**: Orchestrates trading workflows using LangGraph with intelligent analysis nodes
 
 ### Authentication Flow
 

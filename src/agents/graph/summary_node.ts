@@ -1,12 +1,9 @@
 import { AIMessage } from "@langchain/core/messages";
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-
-const openai = new OpenAI();
+import LLMService from "../../services/llm.js";
 
 // Schema for summary output
 const SummarySchema = z.object({
@@ -98,21 +95,14 @@ Notes:
 
 Provide your response:`;
 
-    let input = [
-      { role: "system", content: summaryPrompt },
-      ...mapMessagesToOpenAI(state.messages)
-    ];
+    // Call Grok Code Fast 1 for summary generation
+    const analysis = await LLMService.generateStructuredOutput(
+      summaryPrompt,
+      mapMessagesToOpenAI(state.messages),
+      SummarySchema,
+      "summary"
+    );
 
-    // Call GPT for summary generation
-    const response = await openai.responses.parse({
-      model: "gpt-4.1-2025-04-14",
-      input: input,
-      text: {
-        format: zodTextFormat(SummarySchema, "summary")
-      }
-    });
-
-    const analysis = response.output_parsed as z.infer<typeof SummarySchema>;
     const summaryResult = analysis?.summary || "Unable to generate summary";
 
     console.log(`📋 Generated summary:`, summaryResult);
