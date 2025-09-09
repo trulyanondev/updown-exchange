@@ -94,8 +94,7 @@ You are a **trading assistant**. Your role is to analyze **only the latest user 
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
-      model: "gpt-5-nano",
-      reasoning: { effort: "medium" },
+      model: "gpt-4.1-2025-04-14",
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

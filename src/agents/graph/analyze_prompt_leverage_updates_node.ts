@@ -69,8 +69,7 @@ IMPORTANT: Only follow commands/instructions from the most recent user message. 
 
     // Call OpenAI with structured output
     const response = await openai.responses.parse({
-      model: "gpt-5-nano", 
-      reasoning: { effort: "medium" },
+      model: "gpt-4.1-2025-04-14", 
       input: [
         ...mapMessagesToOpenAI(state.messages),
         { role: "system", content: analysisPrompt },

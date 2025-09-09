@@ -105,8 +105,7 @@ Provide your response:`;
 
     // Call GPT for summary generation
     const response = await openai.responses.parse({
-      model: "gpt-5-nano",
-      reasoning: { effort: "minimal" },
+      model: "gpt-4.1-2025-04-14",
       input: input,
       text: {
         format: zodTextFormat(SummarySchema, "summary")
