@@ -11,10 +11,7 @@ import {
   executeTpSlOrdersNode,
   cancelOrdersNode,
   summaryNode,
-  analyzePromptLeverageUpdatesNode,
-  analyzePromptRegularOrdersNode,
-  analyzePromptTpSlNode,
-  analyzePromptCancelOrdersNode,
+  analyzeIntentPromptsConcurrentlyNode,
   GraphState
 } from "./index.js";
 import { langchain_message, Message } from "../../services/chat.js";
@@ -39,15 +36,12 @@ export interface AgentResponse {
  *
  * Workflow Steps:
  * 1. getPerpInfoNode - Fetch all perpetual contract metadata
- * 2. analyzePromptLeverageUpdatesNode - Analyze user input for leverage updates
- * 3. analyzePromptRegularOrdersNode - Analyze and convert regular orders to TradingOrderParams
- * 4. analyzePromptTpSlNode - Analyze and convert TP/SL orders to TradingOrderParams
- * 5. analyzePromptCancelOrdersNode - Analyze user input for order cancellations
- * 6. processLeverageUpdatesNode - Update leverage for symbols that need it
- * 7. executeOrdersNode - Execute all pending regular orders
- * 8. executeTpSlOrdersNode - Execute all pending TP/SL orders after regular orders
- * 9. cancelOrdersNode - Cancel all pending order cancellations
- * 10. summaryNode - Generate contextual summary of operations performed
+ * 2. analyzeIntentPromptsConcurrentlyNode - Analyze all user intents concurrently (leverage, orders, TP/SL, cancellations)
+ * 3. processLeverageUpdatesNode - Update leverage for symbols that need it
+ * 4. executeOrdersNode - Execute all pending regular orders
+ * 5. executeTpSlOrdersNode - Execute all pending TP/SL orders after regular orders
+ * 6. cancelOrdersNode - Cancel all pending order cancellations
+ * 7. summaryNode - Generate contextual summary of operations performed
  */
 class LangGraphTradingAgent {
   private workflow: any;
@@ -59,10 +53,7 @@ class LangGraphTradingAgent {
     this.workflow = new StateGraph(GraphState)
       // Add nodes to the graph
       .addNode("get_perp_info", getPerpInfoNode)
-      .addNode("analyze_prompt_leverage_updates", analyzePromptLeverageUpdatesNode)
-      .addNode("analyze_prompt_regular_orders", analyzePromptRegularOrdersNode)
-      .addNode("analyze_prompt_tp_sl", analyzePromptTpSlNode)
-      .addNode("analyze_prompt_cancel_orders", analyzePromptCancelOrdersNode)
+      .addNode("analyze_intent_prompts_concurrently", analyzeIntentPromptsConcurrentlyNode)
       .addNode("process_leverage_updates", processLeverageUpdatesNode)
       .addNode("execute_orders", executeOrdersNode)
       .addNode("execute_tpsl_orders", executeTpSlOrdersNode)
@@ -73,17 +64,11 @@ class LangGraphTradingAgent {
       // Define the workflow edges (sequential execution)
       .addEdge(START, "get_perp_info")
 
-      // analyze user input concurrently for regular orders, TP/SL orders, leverage updates, and order cancellations
-      .addEdge("get_perp_info", "analyze_prompt_regular_orders")
-      .addEdge("get_perp_info", "analyze_prompt_tp_sl")
-      .addEdge("get_perp_info", "analyze_prompt_leverage_updates")
-      .addEdge("get_perp_info", "analyze_prompt_cancel_orders")
+      // analyze all user intents concurrently in a single node
+      .addEdge("get_perp_info", "analyze_intent_prompts_concurrently")
 
-      // process leverage updates, regular orders, TP/SL orders, and order cancellations
-      .addEdge("analyze_prompt_leverage_updates", "process_leverage_updates")
-      .addEdge("analyze_prompt_regular_orders", "process_leverage_updates")
-      .addEdge("analyze_prompt_tp_sl", "process_leverage_updates")
-      .addEdge("analyze_prompt_cancel_orders", "process_leverage_updates")
+      // process leverage updates after concurrent analysis
+      .addEdge("analyze_intent_prompts_concurrently", "process_leverage_updates")
 
       // execute regular orders, TP/SL orders, and cancel orders concurrently
       .addEdge("process_leverage_updates", "execute_orders")
@@ -123,9 +108,7 @@ class LangGraphTradingAgent {
       };
 
       // Compile and execute the workflow
-      const app = this.workflow.compile({
-        parallel: true  // Enable parallel execution of nodes
-      });
+      const app = this.workflow.compile();
 
       console.log('▶️ Executing workflow...');
       const result = await app.invoke(initialState);
