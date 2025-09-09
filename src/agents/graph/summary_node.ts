@@ -105,7 +105,7 @@ Provide your response:`;
 
     // Call GPT for summary generation
     const response = await openai.responses.parse({
-      model: "gpt-5-mini",
+      model: "gpt-5-nano",
       reasoning: { effort: "minimal" },
       input: input,
       text: {
