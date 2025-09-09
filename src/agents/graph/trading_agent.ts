@@ -123,7 +123,9 @@ class LangGraphTradingAgent {
       };
 
       // Compile and execute the workflow
-      const app = this.workflow.compile();
+      const app = this.workflow.compile({
+        parallel: true  // Enable parallel execution of nodes
+      });
 
       console.log('▶️ Executing workflow...');
       const result = await app.invoke(initialState);
