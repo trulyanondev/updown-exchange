@@ -5,9 +5,8 @@ import { type GraphStateType } from "./shared_state.js";
 import { TradingOrderParams } from "../../services/trading.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-import { wrapOpenAI } from "langsmith/wrappers";
 
-const openai = wrapOpenAI(new OpenAI());
+const openai = new OpenAI();
 
 // Schemas for regular order analysis
 const OrderAmountSchema = z.object({

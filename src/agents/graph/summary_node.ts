@@ -5,11 +5,8 @@ import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-import { wrapOpenAI } from "langsmith/wrappers";
 
-// wrapOpenAI is a wrapper that allows us to use the OpenAI API with LangSmith
-// It is used to wrap the OpenAI client and add LangSmith tracing and metrics
-const openai = wrapOpenAI(new OpenAI());
+const openai = new OpenAI();
 
 // Schema for summary output
 const SummarySchema = z.object({

@@ -4,9 +4,8 @@ import { z } from "zod";
 import { type GraphStateType } from "./shared_state.js";
 import { accountInfoFromState } from "./utils/account_info_from_state.js";
 import { mapMessagesToOpenAI } from "./utils/message_helpers.js";
-import { wrapOpenAI } from "langsmith/wrappers";
 
-const openai = wrapOpenAI(new OpenAI());
+const openai = new OpenAI();
 
 // Schema for leverage update item
 const LeverageUpdateSchema = z.object({
