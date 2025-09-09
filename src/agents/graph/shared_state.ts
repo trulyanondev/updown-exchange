@@ -1,6 +1,6 @@
 import { BaseMessage } from "@langchain/core/messages";
 import { PerpetualsUniverseDict } from "../../services/marketdata.js";
-import { OrderResponse, SuccessResponse, PerpsClearinghouseState, Order, CancelSuccessResponse, ExchangeClient } from "@nktkas/hyperliquid";
+import { SuccessResponse, PerpsClearinghouseState, Order, CancelSuccessResponse, ExchangeClient } from "@nktkas/hyperliquid";
 import { Annotation } from "@langchain/langgraph";
 import { TradingOrderParams } from "../../services/trading.js";
 
