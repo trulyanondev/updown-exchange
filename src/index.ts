@@ -463,7 +463,27 @@ app.get('/api/deposits/pending', authenticateUser, async (req, res) => {
     }
 
     const amount = await TransferService.getBalance(Network.ARB_MAINNET, Constants.USDC_ARB_CONTRACT, wallet);
-    
+
+    // handle case where webhook didn't trigger a deposit
+    if (amount >= Constants.MIN_HYPERLIQUID_DEPOSIT_AMOUNT) {
+      const user = await PrivyService.getClient().getUserById(wallet.id);
+
+      if (!user) {
+        console.error('User not found for wallet address:', wallet.address);
+      }
+
+      await HyperliquidService.depositToHyperliquidExchange(
+        user, 
+        wallet.address as `0x${string}`, 
+        amount
+      );
+
+      // assume success means full amount is deposited to exchange
+      return res.status(200).json({ 
+        amount: "0"
+      });
+    }
+
     return res.status(200).json({ 
       amount: amount.toString()
     });
